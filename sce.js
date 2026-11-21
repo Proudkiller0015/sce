@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.6.2';
+	const VERSION = '0.6.3';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -646,8 +646,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ badge: boolean, updateReady: boolean, updateNotes: boolean }} */
-	const settings = { badge: true, updateReady: true, updateNotes: true };
+	/** @type {{ badge: boolean, roomBadge: boolean, updateReady: boolean, updateNotes: boolean }} */
+	const settings = { badge: true, roomBadge: true, updateReady: true, updateNotes: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -784,6 +784,7 @@
 		/** @type {[string, keyof typeof settings][]} */
 		const boxes = [
 			['Show the SCE badge on our clothes in the wardrobe', 'badge'],
+			['Show the SCE mark on SCE users in chat rooms', 'roomBadge'],
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
 		];
@@ -984,9 +985,110 @@
 		}, 1000);
 	}
 
+	// ---- The SCE mark: SCE users in a room see each other's, with the version under the mouse (like SlimeBeep's
+	// slime and ER's mark; it sits right of ER's) ----
+
+	/** Content of the hidden room message SCE copies greet each other with: Dictionary [{ sce: version, reply? }]. */
+	const ROOM_HELLO = 'SCE';
+	/** @type {Map<number, string>} Member number -> SCE version, for people met in a chat room. */
+	const roomVersions = new Map();
+	/** @type {Map<number, number>} Member number -> when we last answered their hello. */
+	const helloAnswered = new Map();
+	/** The room SCE last said hello in. */
+	let helloRoom = '';
+
+	/** Says hello to the room (hidden), or answers one person's hello; other SCE copies answer with their version. */
+	function sendHello(/** @type {number} */ to = 0) {
+		try {
+			w.ServerSend('ChatRoomChat', {
+				Content: ROOM_HELLO,
+				Type: 'Hidden',
+				...(to ? { Target: to } : {}),
+				Dictionary: [{ sce: VERSION, ...(to ? {} : { reply: true }) }],
+			});
+		} catch {
+			// no room, no hello
+		}
+	}
+
+	/** Draws the mark above an SCE user, right of ER's, and the version while the mouse is on it. */
+	function drawRoomBadge(/** @type {any} */ C, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ zoom) {
+		try {
+			if (!settings.roomBadge || !C || typeof C.MemberNumber !== 'number' || !w.Player) {
+				return;
+			}
+			if (typeof ChatRoomHideIconState === 'number' && ChatRoomHideIconState > 0) {
+				return;
+			}
+			const version = C.MemberNumber === w.Player.MemberNumber ? VERSION : roomVersions.get(C.MemberNumber);
+			if (!version) {
+				return;
+			}
+			const [bx, by, size] = [x + 406 * zoom, y + 42 * zoom, 34 * zoom];
+			const mouse = typeof w.MouseIn === 'function';
+			// SlimeBeep's and ER's versions are written right of their marks (x+330, x+368), over this spot: step aside
+			if (mouse && (w.MouseIn(x + 330 * zoom, by, size, size) || w.MouseIn(x + 368 * zoom, by, size, size))) {
+				return;
+			}
+			w.DrawImageResize(ICON, bx, by, size, size);
+			if (mouse && w.MouseIn(bx, by, size, size)) {
+				w.DrawTextFit(version, x + 470 * zoom, by + 18 * zoom, 60 * zoom, '#7dffb0', 'black');
+			}
+		} catch {
+			// a mark is never worth an error
+		}
+	}
+
+	/** The hello listener, the drawing and the once-per-room hello. */
+	function hookRoomBadge() {
+		hookGame('ChatRoomMessage', 1000, 'RoomBadge', (args, next) => {
+			try {
+				const m = args[0];
+				if (m && m.Type === 'Hidden' && m.Content === ROOM_HELLO && typeof m.Sender === 'number' && w.Player && m.Sender !== w.Player.MemberNumber) {
+					const d = Array.isArray(m.Dictionary) ? m.Dictionary[0] : null;
+					const v = d && typeof d === 'object' ? d.sce : null;
+					if (typeof v === 'string' && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v)) {
+						roomVersions.set(m.Sender, v);
+						if (d.reply === true && Date.now() - (helloAnswered.get(m.Sender) || 0) > 10000) {
+							helloAnswered.set(m.Sender, Date.now());
+							sendHello(m.Sender);
+						}
+					}
+				}
+			} catch {
+				// not ours
+			}
+			return next(args);
+		});
+		hookGame('ChatRoomCharacterViewDrawOverlay', 0, 'RoomBadge', (args, next) => {
+			const res = next(args);
+			drawRoomBadge(args[0], args[1], args[2], args[3]);
+			return res;
+		});
+		setInterval(() => {
+			let room = '';
+			try {
+				const data = typeof ChatRoomData === 'object' ? ChatRoomData : null;
+				if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && data && data.Name) {
+					room = String(data.Name);
+				}
+			} catch {
+				room = '';
+			}
+			if (room === helloRoom) {
+				return;
+			}
+			helloRoom = room;
+			if (room) {
+				sendHello();
+			}
+		}, 1000);
+	}
+
 	/** Once logged in: the settings page, this version's note, then a look for updates now and then. */
 	function startExtras() {
 		hookBadge();
+		hookRoomBadge();
 		hookRestore();
 		let tries = 0;
 		const wait = setInterval(() => {

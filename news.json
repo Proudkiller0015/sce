@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.6.3",
+		"title": "Slime Clothing Extension v0.6.3",
+		"text": "New: the SCE mark. In chat rooms, SCE users show a small SCE icon above their character, right of ER's, with their SCE version when you point at it. You can turn it off in SCE's settings."
+	},
+	{
 		"id": "0.6.2",
 		"title": "Slime Clothing Extension v0.6.2",
 		"text": "Furisode: with the obi cord off, the obi is now plain obi fabric where the bow was, with no trace of the bow's shape left."
