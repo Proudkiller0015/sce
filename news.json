@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.6.2",
+		"title": "Slime Clothing Extension v0.6.2",
+		"text": "Furisode: with the obi cord off, the obi is now plain obi fabric where the bow was, with no trace of the bow's shape left."
+	},
+	{
 		"id": "0.6.1",
 		"title": "Slime Clothing Extension v0.6.1",
 		"text": "Furisode: taking the obi cord off now removes all of it, bow and outline included, and leaves a clean obi. On the Small chest size the whole cord now takes the cord colour."

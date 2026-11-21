@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.6.1';
+	const VERSION = '0.6.2';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -679,9 +679,21 @@
 	};
 
 	/** Shows a game toast with the add-on's icon; does nothing on a game without toasts. */
+	/** The game colours only its own toast types; ours gets a solid background so its text stays readable over any room. */
+	function toastStyle() {
+		if (document.getElementById('sce-toast-style')) {
+			return;
+		}
+		const style = document.createElement('style');
+		style.id = 'sce-toast-style';
+		style.textContent = '.toast.sce-toast { --background-color: #3b1f3a; --accent-color: #ffe3f1; }';
+		document.head.appendChild(style);
+	}
+
 	function toast(/** @type {string} */ title, /** @type {string} */ text, ms = 12000) {
 		try {
 			if (w.ToastManager && typeof w.ToastManager.custom === 'function') {
+				toastStyle();
 				w.ToastManager.custom(text, 'sce-toast', { title, icon: ICON, iconColor: 'default', duration: ms, category: ADDON_ID });
 			}
 		} catch (e) {
