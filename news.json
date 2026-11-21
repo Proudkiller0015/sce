@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.6.5",
+		"title": "Slime Clothing Extension v0.6.5",
+		"text": "Kimono: new Obi choice. \"No obi\" takes off the obi and its cord."
+	},
+	{
 		"id": "0.6.4",
 		"title": "Slime Clothing Extension v0.6.4",
 		"text": "Kimono: an outfit saved before the sleeve and collar choices existed now shows its sleeves' edges and collar again (the pattern no longer pokes out past the outline). Hiding the obi now shows the kimono and its pattern under it instead of a plain block."
