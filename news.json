@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.6.1",
+		"title": "Slime Clothing Extension v0.6.1",
+		"text": "Furisode: taking the obi cord off now removes all of it, bow and outline included, and leaves a clean obi. On the Small chest size the whole cord now takes the cord colour."
+	},
+	{
 		"id": "0.6.0",
 		"title": "Slime Clothing Extension v0.6.0",
 		"text": "New: Furisode, a long kimono drawn as one piece and split into colour parts (kimono, sakura, lining, collar, obi, obi cord), each with its own colour, for every chest size. The obi and its cord can be taken off. The old kimono is still there."
