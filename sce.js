@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.2.1';
+	const VERSION = '0.3.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -684,13 +684,19 @@
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
 		];
+		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
+		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 560, 64];
+		/** What the last press of the restore button did. */
+		let restoreSaid = '';
 		const mouseIn = (/** @type {number[]} */ r) => typeof w.MouseIn === 'function' && w.MouseIn(r[0], r[1], r[2], r[3]);
 		try {
 			register({
 				Identifier: ADDON_ID,
 				ButtonText: ADDON_NAME,
 				Image: ICON,
-				load: () => {},
+				load: () => {
+					restoreSaid = '';
+				},
 				run: () => {
 					try {
 						// The game's canvas is a script-level `let`, not a window property.
@@ -711,6 +717,12 @@
 							'Gray',
 						);
 						ctx.textAlign = 'center';
+						w.DrawButton(...RESTORE, 'Put my SCE clothes back', 'White');
+						if (restoreSaid) {
+							ctx.textAlign = 'left';
+							w.DrawText(restoreSaid, RESTORE[0] + RESTORE[2] + 30, RESTORE[1] + 32, 'Black', 'Gray');
+							ctx.textAlign = 'center';
+						}
 						w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
 					} catch (e) {
 						problem('Settings', e);
@@ -722,6 +734,12 @@
 							if (typeof w.PreferenceSubscreenExtensionsClear === 'function') {
 								w.PreferenceSubscreenExtensionsClear();
 							}
+							return;
+						}
+						if (mouseIn(RESTORE)) {
+							const back = restoreOutfit();
+							restoreSaid = back.length ? `Put back: ${back.join(', ')}` : 'Nothing was missing.';
+							saveOutfit();
 							return;
 						}
 						boxes.forEach(([, key], i) => {
@@ -740,9 +758,125 @@
 		}
 	}
 
+	// ---- Restore: if the game loads your outfit before SCE has added its clothes (a slow connection, the bookmark),
+	// it drops them as unknown. SCE keeps a copy of the SCE clothes you wear in your account's add-on settings and
+	// puts back what is missing once its clothes are in, into empty slots only.
+	/** Your account's copy of the SCE clothes you wear: [{ Group, Name, Color, Property }]. */
+	function savedOutfit() {
+		try {
+			const raw = w.Player && w.Player.ExtensionSettings && w.Player.ExtensionSettings[ADDON_ID];
+			const data = typeof raw === 'string' && raw ? JSON.parse(raw) : null;
+			return data && Array.isArray(data.worn) ? data.worn.filter((x) => x && typeof x.Group === 'string' && typeof x.Name === 'string') : [];
+		} catch {
+			return [];
+		}
+	}
+	/** Whether this login's restore check has run: before it, the outfit may be missing pieces, so no copy is taken. */
+	let restoreChecked = 0;
+	/** Saves a copy of the SCE clothes you wear, when it changed. */
+	function saveOutfit() {
+		const p = w.Player;
+		if (!p || !p.MemberNumber || restoreChecked !== p.MemberNumber || !p.ExtensionSettings || !Array.isArray(p.Appearance)) {
+			return;
+		}
+		const worn = p.Appearance.filter((/** @type {any} */ i) => i && isOurs(i.Asset)).map((/** @type {any} */ i) => ({
+			Group: i.Asset.Group.Name,
+			Name: i.Asset.Name,
+			Color: i.Color,
+			Property: i.Property ? JSON.parse(JSON.stringify(i.Property)) : undefined,
+		}));
+		const text = JSON.stringify({ v: 1, worn });
+		if (p.ExtensionSettings[ADDON_ID] === text || typeof w.ServerPlayerExtensionSettingsSync !== 'function') {
+			return;
+		}
+		p.ExtensionSettings[ADDON_ID] = text;
+		w.ServerPlayerExtensionSettingsSync(ADDON_ID);
+	}
+	/**
+	 * Puts back saved SCE clothes the outfit is missing, into empty slots that aren't blocked. Returns their names.
+	 * @returns {string[]}
+	 */
+	function restoreOutfit() {
+		const p = w.Player;
+		const back = [];
+		for (const s of savedOutfit()) {
+			const asset = w.AssetGet('Female3DCG', s.Group, s.Name);
+			if (!asset || !isOurs(asset) || w.InventoryGet(p, s.Group)) {
+				continue;
+			}
+			if (typeof w.InventoryGroupIsBlocked === 'function' && w.InventoryGroupIsBlocked(p, s.Group)) {
+				continue;
+			}
+			w.InventoryWear(p, s.Name, s.Group, s.Color);
+			const item = w.InventoryGet(p, s.Group);
+			if (item && item.Asset === asset) {
+				if (s.Property && typeof s.Property === 'object') {
+					item.Property = JSON.parse(JSON.stringify(s.Property));
+				}
+				back.push(asset.Description);
+			}
+		}
+		if (back.length) {
+			w.CharacterRefresh(p);
+			if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && typeof w.ChatRoomCharacterUpdate === 'function') {
+				w.ChatRoomCharacterUpdate(p);
+			} else if (typeof w.ServerPlayerAppearanceSync === 'function') {
+				w.ServerPlayerAppearanceSync();
+			}
+		}
+		return back;
+	}
+	/** Once per login, when SCE's clothes are in and your outfit has loaded: puts back what the game dropped. */
+	function checkRestore() {
+		const p = w.Player;
+		if (!p || !p.MemberNumber || restoreChecked === p.MemberNumber || !pieces.size || !Array.isArray(p.Appearance) || !p.Appearance.length) {
+			return;
+		}
+		if (!p.ExtensionSettings || ['AssetGet', 'InventoryGet', 'InventoryWear', 'CharacterRefresh'].some((f) => !gameFunction(f))) {
+			return;
+		}
+		restoreChecked = p.MemberNumber;
+		try {
+			const back = restoreOutfit();
+			if (back.length) {
+				toast(ADDON_NAME, `Put back what the game had dropped: ${back.join(', ')}.`);
+			}
+			saveOutfit();
+		} catch (e) {
+			problem('Restore', e);
+		}
+	}
+	function hookRestore() {
+		hookGame('ServerPlayerAppearanceSync', 0, 'Restore', (args, next) => {
+			const result = next(args);
+			saveOutfit();
+			return result;
+		});
+		// In a chat room your outfit is saved through the room update instead.
+		if (gameFunction('ChatRoomCharacterUpdate')) {
+			hookGame('ChatRoomCharacterUpdate', 0, 'Restore', (args, next) => {
+				const result = next(args);
+				if (args[0] && w.Player && args[0].MemberNumber === w.Player.MemberNumber) {
+					saveOutfit();
+				}
+				return result;
+			});
+		}
+		setInterval(() => {
+			if (working('Restore')) {
+				try {
+					checkRestore();
+				} catch (e) {
+					problem('Restore', e);
+				}
+			}
+		}, 1000);
+	}
+
 	/** Once logged in: the settings page, this version's note, then a look for updates now and then. */
 	function startExtras() {
 		hookBadge();
+		hookRestore();
 		let tries = 0;
 		const wait = setInterval(() => {
 			if (++tries > 2400) {

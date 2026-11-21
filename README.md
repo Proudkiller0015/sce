@@ -24,7 +24,8 @@ Both run the same SCE and always load its newest version, so there's nothing to 
   - **Collar** and **Obi cord:** on or off.
   - **Colours:** the kimono, sleeves, lining, pattern, pattern outline, collar, sleeve band, obi and obi cord each have their own.
   - Fits every chest and hip size. Standing for now; poses are being drawn.
-- **⚙ Settings > Extensions > Slime Clothing Extension:** the badge on/off, the update-ready notice and the update notes.
+- **♻ Restore:** if the game loads your outfit before SCE (a slow connection, or the bookmark clicked late), it drops SCE clothes it doesn't know yet. SCE keeps a copy of what you wear with your account and puts it back into empty slots once it's loaded, never over anything else.
+- **⚙ Settings > Extensions > Slime Clothing Extension:** the badge on/off, the update-ready notice, the update notes, and **Put my SCE clothes back**.
 - **🔔 Updates:** a notice tells you when a newer SCE is ready (reload the game to get it), and what's new shows once after an update.
 
 ## For developers

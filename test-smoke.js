@@ -86,7 +86,7 @@ async function run(/** @type {any} */ browser, /** @type {boolean} */ withPiece)
 	const base = `http://127.0.0.1:${server.address().port}`;
 	const page = await browser.newPage();
 	const errors = [];
-	page.on('pageerror', (e) => errors.push(String(e)));
+	page.on('pageerror', (e) => errors.push(String(e.stack || e).split('\n').slice(0, 4).join(' | ')));
 	await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
 	await page.waitForFunction(() => Array.isArray(window.Asset) && window.Asset.length > 100 && window.bcModSdk, { timeout: 60000 });
 	await page.evaluate((b) => {
@@ -123,6 +123,34 @@ async function run(/** @type {any} */ browser, /** @type {boolean} */ withPiece)
 	});
 	await new Promise((r) => setTimeout(r, 1500));
 	const settingsPage = await page.evaluate(() => typeof PreferenceExtensionsSettings === 'object' && !!PreferenceExtensionsSettings.SCE);
+	// Restore: a logged-in player whose saved copy lists the cap, which the game had dropped, gets it back; a taken
+	// slot is left alone. (The offline page has no server: what it would send is recorded instead.)
+	const restore = withPiece
+		? await page.evaluate(async () => {
+				const sent = [];
+				window.ServerSend = (...a) => sent.push(a[0]);
+				const real = window.Player;
+				const login = async (/** @type {number} */ member, /** @type {string | null} */ hat) => {
+					const C = CharacterLoadSimple(`RestoreTest${member}`);
+					CharacterAppearanceSetDefault(C);
+					InventoryRemove(C, 'Hat', false);
+					if (hat) InventoryWear(C, hat, 'Hat');
+					C.MemberNumber = member;
+					// The game's draw loop reads the player's settings: the stand-in borrows the real ones.
+					for (const k of Object.keys(real)) {
+						if (!(k in C)) C[k] = real[k];
+					}
+					C.ExtensionSettings = { SCE: JSON.stringify({ v: 1, worn: [{ Group: 'Hat', Name: 'SmokeTestCap', Color: ['#ff0000'] }] }) };
+					window.Player = C;
+					await new Promise((r) => setTimeout(r, 2500));
+					const item = InventoryGet(C, 'Hat');
+					return { hat: item && item.Asset.Name, color: item && item.Color };
+				};
+				const result = { dropped: await login(2, null), taken: await login(3, 'Beret1'), sent };
+				window.Player = real;
+				return result;
+			})
+		: null;
 	// The colour screen names our layers.
 	const layerName = withPiece
 		? await page.evaluate(async () => {
@@ -140,6 +168,8 @@ async function run(/** @type {any} */ browser, /** @type {boolean} */ withPiece)
 		check('the badge has its hover text and picture', got.badgeText === 'Slime Clothing Extension' && /\/addon\/icon-64\.png/.test(got.badgePicture), got);
 		check('once logged in, the settings page is in Preferences > Extensions', settingsPage, settingsPage);
 		check('the colour screen shows our layer names', layerName === 'Cap band', layerName);
+		check('after login, dropped SCE clothes are put back in their colours', restore.dropped.hat === 'SmokeTestCap' && JSON.stringify(restore.dropped.color) === '["#ff0000"]', restore);
+		check('a slot that is already taken is left alone', restore.taken.hat === 'Beret1', restore);
 		check('its outfit is offered whole and by item', got.outfits.join('|') === 'Smoke outfit (full outfit)|Smoke outfit: Smoke test cap', got.outfits);
 	} else {
 		check('with no clothes nothing is registered', !got.registered && got.outfits.length === 0, got);
