@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.4.1",
+		"title": "Slime Clothing Extension v0.4.1",
+		"text": "The kimono is back to the 0.3.0 version while a better-made one is drawn."
+	},
+	{
 		"id": "0.4.0",
 		"title": "Slime Clothing Extension v0.4.0",
 		"text": "The kimono is redrawn: detached sleeves and sleeveless are now drawn versions with proper armholes and a sleeve band, the obi is drawn whole under the cord (turn the cord off cleanly), every part's edge follows the drawing, and the obi cord and pattern outline share rows in the colour screen so every colour fits on one page."
