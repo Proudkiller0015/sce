@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.5.0';
+	const VERSION = '0.5.1';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -123,6 +123,8 @@
 	const texts = new Map();
 	/** @type {Map<string, string>} The pieces' layer names in the colour screen, by <Group><Asset><Layer>. */
 	const layerNames = new Map();
+	/** @type {Map<string, Record<string, string[]>>} Older colour orders of each piece, by their length. */
+	const colorHistories = new Map();
 	/** @type {Map<string, string>} Their colour group rows' names, by <Group><Asset><ColorGroup>. */
 	const groupNames = new Map();
 
@@ -222,11 +224,15 @@
 			for (const [k, v] of Object.entries(piece.layerNames || {})) {
 				layerNames.set(k, String(v));
 			}
+			if (piece.colorHistory && typeof piece.colorHistory === 'object') {
+				colorHistories.set(piece.name, piece.colorHistory);
+			}
 			for (const [k, v] of Object.entries(piece.groupNames || {})) {
 				groupNames.set(k, String(v));
 			}
 		}
 		hookLayerNames();
+		hookColorHistory();
 		hookOutfits(data.outfits || {});
 		hookGame('ValidationResolveRemoveDiff', 0, 'Keeping the clothes on', keepOnRemove);
 	}
@@ -264,6 +270,83 @@
 		if (w.AssetMap instanceof Map) {
 			w.AssetMap.delete(`${group.Name}/${name}`);
 		}
+	}
+
+	/**
+	 * The colour keys of an asset in the game's order: index -> the layer (or the layer it copies) that colour paints.
+	 * @param {any} asset
+	 */
+	function colorKeys(asset) {
+		/** @type {string[]} */
+		const keys = [];
+		for (const l of asset.Layer || []) {
+			if (l.AllowColorize && typeof l.ColorIndex === 'number' && keys[l.ColorIndex] === undefined) {
+				keys[l.ColorIndex] = l.CopyLayerColor || l.Name;
+			}
+		}
+		return keys;
+	}
+	/**
+	 * Colours saved in an older layer order (a different number of colours), mapped by part onto today's order; parts
+	 * that didn't exist then take their default. Returns null when the colours are already in today's order.
+	 * @param {any} item
+	 */
+	function remappedColors(item) {
+		const history = item && item.Asset && colorHistories.get(item.Asset.Name);
+		if (!history || !Array.isArray(item.Color)) {
+			return null;
+		}
+		const keys = colorKeys(item.Asset);
+		if (item.Color.length === keys.length) {
+			return null;
+		}
+		const old = history[String(item.Color.length)];
+		if (!Array.isArray(old)) {
+			return null;
+		}
+		return keys.map((k) => {
+			const i = old.indexOf(k);
+			return i >= 0 && typeof item.Color[i] === 'string' ? item.Color[i] : 'Default';
+		});
+	}
+	/** Draws everyone's older-order colours on the right parts; fixes your own saved outfit once. */
+	function hookColorHistory() {
+		// Saved outfits are parsed here, which cuts a colour list to today's length: map it by part first.
+		hookGame('ServerParseColor', 0, 'Colour order', (args, next) => {
+			const [asset, color] = args;
+			if (isOurs(asset) && Array.isArray(color)) {
+				const mapped = remappedColors({ Asset: asset, Color: color });
+				if (mapped) {
+					return next([asset, mapped, ...args.slice(2)]);
+				}
+			}
+			return next(args);
+		});
+		hookGame('CommonDrawResolveLayerColor', 0, 'Colour order', (args, next) => {
+			const item = args[1];
+			if (item && isOurs(item.Asset)) {
+				const mapped = remappedColors(item);
+				if (mapped) {
+					return next([args[0], { ...item, Color: mapped }, ...args.slice(2)]);
+				}
+			}
+			return next(args);
+		});
+	}
+	/** Rewrites your own SCE items' colours into today's order (once, after login); returns whether any changed. */
+	function fixOwnColors() {
+		const p = w.Player;
+		let changed = false;
+		for (const item of (p && Array.isArray(p.Appearance) ? p.Appearance : [])) {
+			if (item && isOurs(item.Asset)) {
+				const mapped = remappedColors(item);
+				if (mapped) {
+					item.Color = mapped;
+					changed = true;
+				}
+			}
+		}
+		return changed;
 	}
 
 	/**
@@ -845,6 +928,14 @@
 		}
 		restoreChecked = p.MemberNumber;
 		try {
+			if (fixOwnColors()) {
+				w.CharacterRefresh(p);
+				if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && typeof w.ChatRoomCharacterUpdate === 'function') {
+					w.ChatRoomCharacterUpdate(p);
+				} else if (typeof w.ServerPlayerAppearanceSync === 'function') {
+					w.ServerPlayerAppearanceSync();
+				}
+			}
 			const back = restoreOutfit();
 			if (back.length) {
 				toast(ADDON_NAME, `Put back what the game had dropped: ${back.join(', ')}.`);

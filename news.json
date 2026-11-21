@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.5.1",
+		"title": "Slime Clothing Extension v0.5.1",
+		"text": "The kimono is back to its earlier look while a better-made one is drawn. Colours you picked on either version stay on the right parts."
+	},
+	{
 		"id": "0.5.0",
 		"title": "Slime Clothing Extension v0.5.0",
 		"text": "The kimono is rebuilt the way hand-drawn clothes are made: every part is a complete layer (the obi is whole under the cord, lining and collar sit under the kimono), shading and lines are their own layers so any colour keeps its shading, and it covers every body including Echo V2. Shading, highlight and lines have their own colours too."

@@ -223,7 +223,9 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 	const groupNames = Object.fromEntries(
 		p.Layer.filter((/** @type {any} */ l) => l.ColorGroup).map((/** @type {any} */ l) => [`${p.Group}${p.Name}${l.ColorGroup}`, words(l.ColorGroup)]),
 	);
-	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, groupNames, fits };
+	/** Older colour orders by their length: { "9": [colour key per index] }, so colours saved then can be mapped by part. */
+	const colorHistory = p.ColorHistory && typeof p.ColorHistory === 'object' ? p.ColorHistory : {};
+	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, groupNames, colorHistory, fits };
 });
 
 const images = [...written].filter((f) => f.startsWith('img/')).sort();

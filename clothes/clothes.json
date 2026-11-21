@@ -11,58 +11,21 @@
 				"Value": 0,
 				"Hide": [],
 				"DefaultColor": [
-					"#B8324A",
-					"#F2EEE6",
 					"#2B3A67",
+					"#2B3A67",
+					"#B8324A",
 					"#F2B5C4",
 					"#FFFFFF",
-					"#000000",
-					"#141018",
-					"#D4AF37",
+					"#F2EEE6",
 					"#B8324A",
-					"#2B3A67",
+					"#D4AF37",
 					"#B8324A"
 				],
 				"Layer": [
 					{
-						"Name": "Lining",
-						"Left": 139,
-						"Top": 863,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#B8324A"
-						]
-					},
-					{
-						"Name": "Collar",
-						"Left": 216,
-						"Top": 222,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#F2EEE6"
-						],
-						"AllowTypes": {
-							"e": [
-								0
-							]
-						}
-					},
-					{
 						"Name": "Kimono",
-						"Left": 139,
-						"Top": 224,
+						"Left": 128,
+						"Top": 223,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
@@ -75,9 +38,45 @@
 						]
 					},
 					{
+						"Name": "Sleeves",
+						"Left": 96,
+						"Top": 232,
+						"Priority": 30,
+						"ParentGroup": "BodyUpper",
+						"CreateLayerTypes": [
+							"s",
+							"l"
+						],
+						"AllowColorize": true,
+						"Color": [
+							"#2B3A67"
+						],
+						"AllowTypes": {
+							"l": [
+								0,
+								1
+							]
+						}
+					},
+					{
+						"Name": "Lining",
+						"Left": 127,
+						"Top": 394,
+						"Priority": 30,
+						"ParentGroup": "BodyUpper",
+						"CreateLayerTypes": [
+							"s",
+							"l"
+						],
+						"AllowColorize": true,
+						"Color": [
+							"#B8324A"
+						]
+					},
+					{
 						"Name": "Pattern",
-						"Left": 139,
-						"Top": 224,
+						"Left": 96,
+						"Top": 223,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
@@ -85,7 +84,6 @@
 							"l",
 							"p"
 						],
-						"ColorGroup": "Pattern",
 						"AllowColorize": true,
 						"Color": [
 							"#F2B5C4"
@@ -101,7 +99,7 @@
 					},
 					{
 						"Name": "PatternOutline",
-						"Left": 157,
+						"Left": 123,
 						"Top": 232,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
@@ -110,7 +108,6 @@
 							"l",
 							"p"
 						],
-						"ColorGroup": "Pattern",
 						"AllowColorize": true,
 						"Color": [
 							"#FFFFFF"
@@ -125,95 +122,66 @@
 						}
 					},
 					{
-						"Name": "Shade",
-						"Left": 139,
-						"Top": 224,
+						"Name": "Collar",
+						"Left": 223,
+						"Top": 220,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
-							"s",
-							"l"
+							"s"
 						],
-						"ColorGroup": "Shading",
 						"AllowColorize": true,
 						"Color": [
-							"#000000"
-						]
+							"#F2EEE6"
+						],
+						"AllowTypes": {
+							"e": [
+								0
+							]
+						}
 					},
 					{
-						"Name": "Lines",
-						"Left": 139,
-						"Top": 223,
+						"Name": "SleeveBand",
+						"Left": 153,
+						"Top": 300,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
-							"s",
-							"l"
+							"s"
 						],
-						"ColorGroup": "Shading",
 						"AllowColorize": true,
 						"Color": [
-							"#141018"
-						]
+							"#B8324A"
+						],
+						"AllowTypes": {
+							"l": [
+								1
+							]
+						}
 					},
 					{
 						"Name": "Obi",
-						"Left": 189,
-						"Top": 317,
+						"Left": 187,
+						"Top": 316,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
-							"s",
-							"l"
+							"s"
 						],
-						"ColorGroup": "Obi",
 						"AllowColorize": true,
 						"Color": [
 							"#D4AF37"
 						]
 					},
 					{
-						"Name": "ObiShade",
-						"Left": 189,
-						"Top": 319,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#000000"
-						],
-						"CopyLayerColor": "Shade"
-					},
-					{
-						"Name": "ObiLines",
-						"Left": 189,
-						"Top": 317,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#141018"
-						],
-						"CopyLayerColor": "Lines"
-					},
-					{
 						"Name": "Cord",
-						"Left": 190,
+						"Left": 188,
 						"Top": 339,
 						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"CreateLayerTypes": [
 							"s"
 						],
-						"ColorGroup": "Obi",
 						"AllowColorize": true,
 						"Color": [
 							"#B8324A"
@@ -221,171 +189,6 @@
 						"AllowTypes": {
 							"c": [
 								0
-							]
-						}
-					},
-					{
-						"Name": "SleeveLining",
-						"Left": 138,
-						"Top": 390,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#B8324A"
-						],
-						"CopyLayerColor": "Lining",
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							]
-						}
-					},
-					{
-						"Name": "Sleeves",
-						"Left": 92,
-						"Top": 243,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#2B3A67"
-						],
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							]
-						}
-					},
-					{
-						"Name": "SleevePattern",
-						"Left": 92,
-						"Top": 243,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l",
-							"p"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#F2B5C4"
-						],
-						"CopyLayerColor": "Pattern",
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							],
-							"p": [
-								1,
-								2,
-								3,
-								4
-							]
-						}
-					},
-					{
-						"Name": "SleevePatternOutline",
-						"Left": 121,
-						"Top": 254,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l",
-							"p"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#FFFFFF"
-						],
-						"CopyLayerColor": "PatternOutline",
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							],
-							"p": [
-								1,
-								2,
-								3,
-								4
-							]
-						}
-					},
-					{
-						"Name": "SleeveShade",
-						"Left": 97,
-						"Top": 268,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#000000"
-						],
-						"CopyLayerColor": "Shade",
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							]
-						}
-					},
-					{
-						"Name": "SleeveLines",
-						"Left": 92,
-						"Top": 243,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#141018"
-						],
-						"CopyLayerColor": "Lines",
-						"AllowTypes": {
-							"l": [
-								0,
-								1
-							]
-						}
-					},
-					{
-						"Name": "SleeveBand",
-						"Left": 147,
-						"Top": 307,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"CreateLayerTypes": [
-							"s",
-							"l"
-						],
-						"AllowColorize": true,
-						"Color": [
-							"#B8324A"
-						],
-						"AllowTypes": {
-							"l": [
-								1
 							]
 						}
 					}
@@ -477,412 +280,209 @@
 				"ClothSlimeKimonoOptionc1": "No obi cord"
 			},
 			"layerNames": {
-				"ClothSlimeKimonoLining": "Lining",
-				"ClothSlimeKimonoCollar": "Collar",
 				"ClothSlimeKimonoKimono": "Kimono",
-				"ClothSlimeKimonoPattern": "Motif",
-				"ClothSlimeKimonoPatternOutline": "Outline",
-				"ClothSlimeKimonoShade": "Shade",
-				"ClothSlimeKimonoLines": "Lines",
-				"ClothSlimeKimonoObi": "Sash",
-				"ClothSlimeKimonoObiShade": "Shade",
-				"ClothSlimeKimonoObiLines": "Lines",
-				"ClothSlimeKimonoCord": "Cord",
-				"ClothSlimeKimonoSleeveLining": "Lining",
 				"ClothSlimeKimonoSleeves": "Sleeves",
-				"ClothSlimeKimonoSleevePattern": "Motif",
-				"ClothSlimeKimonoSleevePatternOutline": "Outline",
-				"ClothSlimeKimonoSleeveShade": "Shade",
-				"ClothSlimeKimonoSleeveLines": "Lines",
-				"ClothSlimeKimonoSleeveBand": "Sleeve band"
-			},
-			"groupNames": {
+				"ClothSlimeKimonoLining": "Lining",
 				"ClothSlimeKimonoPattern": "Pattern",
-				"ClothSlimeKimonoShading": "Shading",
-				"ClothSlimeKimonoObi": "Obi"
+				"ClothSlimeKimonoPatternOutline": "Pattern outline",
+				"ClothSlimeKimonoCollar": "Collar",
+				"ClothSlimeKimonoSleeveBand": "Sleeve band",
+				"ClothSlimeKimonoObi": "Obi",
+				"ClothSlimeKimonoCord": "Obi cord"
 			},
-			"fits": []
+			"fits": [],
+			"colorHistory": {
+				"11": [
+					"Lining",
+					"Collar",
+					"Kimono",
+					"Pattern",
+					"PatternOutline",
+					"Shade",
+					"Lines",
+					"Obi",
+					"Cord",
+					"Sleeves",
+					"SleeveBand"
+				]
+			}
 		}
 	],
 	"images": [
+		"img/Cloth/SlimeKimono_FlatMedium_s0_Collar.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0_Cord.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_FlatMedium_s0_Obi.png",
+		"img/Cloth/SlimeKimono_FlatMedium_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatMedium_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p2_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p3_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatMedium_s0l2p4_PatternOutline.png",
+		"img/Cloth/SlimeKimono_FlatSmall_s0_Collar.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0_Cord.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_FlatSmall_s0_Obi.png",
+		"img/Cloth/SlimeKimono_FlatSmall_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_FlatSmall_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p2_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p3_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p4_Pattern.png",
 		"img/Cloth/SlimeKimono_FlatSmall_s0l2p4_PatternOutline.png",
+		"img/Cloth/SlimeKimono_Large_s0_Collar.png",
 		"img/Cloth/SlimeKimono_Large_s0_Cord.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_Large_s0_Obi.png",
+		"img/Cloth/SlimeKimono_Large_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_Large_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_Large_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Large_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Large_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_Large_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_Large_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Large_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Large_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Large_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_Large_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_Large_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_Large_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p2_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p3_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Large_s0l2p4_PatternOutline.png",
+		"img/Cloth/SlimeKimono_Normal_s0_Collar.png",
 		"img/Cloth/SlimeKimono_Normal_s0_Cord.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_Normal_s0_Obi.png",
+		"img/Cloth/SlimeKimono_Normal_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Normal_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_Normal_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p2_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p3_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Normal_s0l2p4_PatternOutline.png",
+		"img/Cloth/SlimeKimono_Small_s0_Collar.png",
 		"img/Cloth/SlimeKimono_Small_s0_Cord.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_Small_s0_Obi.png",
+		"img/Cloth/SlimeKimono_Small_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_Small_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_Small_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Small_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Small_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_Small_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_Small_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_Small_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_Small_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_Small_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_Small_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_Small_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_Small_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p2_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p3_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p4_Pattern.png",
 		"img/Cloth/SlimeKimono_Small_s0l2p4_PatternOutline.png",
+		"img/Cloth/SlimeKimono_XLarge_s0_Collar.png",
 		"img/Cloth/SlimeKimono_XLarge_s0_Cord.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_Collar.png",
+		"img/Cloth/SlimeKimono_XLarge_s0_Obi.png",
+		"img/Cloth/SlimeKimono_XLarge_s0_SleeveBand.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0_Kimono.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_Lines.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0_Lining.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_Obi.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_ObiLines.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_ObiShade.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_Shade.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_SleeveLines.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_SleeveLining.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0_SleeveShade.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0_Sleeves.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p1_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p2_Pattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p3_Pattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p4_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l0p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l0p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_Collar.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1_Kimono.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_Lines.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1_Lining.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_Obi.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_ObiLines.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_ObiShade.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_Shade.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_SleeveBand.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_SleeveLines.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_SleeveLining.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1_SleeveShade.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1_Sleeves.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p1_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p1_PatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p1_SleevePattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p1_SleevePatternOutline.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p2_Pattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p2_SleevePattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p3_Pattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p3_SleevePattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p4_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l1p4_PatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p4_SleevePattern.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l1p4_SleevePatternOutline.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_Collar.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l2_Kimono.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_Lines.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l2_Lining.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_Obi.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_ObiLines.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_ObiShade.png",
-		"img/Cloth/SlimeKimono_XLarge_s0l2_Shade.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l2p1_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l2p1_PatternOutline.png",
 		"img/Cloth/SlimeKimono_XLarge_s0l2p2_Pattern.png",
