@@ -1,36 +1,36 @@
-# Slime Clothing Extension (SCE)
+<p align="center"><img src="icon-128.png" alt="SCE" width="128"></p>
 
-A Bondage Club clothing add-on in the spirit of Echo's clothing pack, by SlimeQueenSamantha. Planned home: GitHub
-Pages at `https://proudkiller0015.github.io/sce/` (repo not created yet), later FUSAM. Nothing is published yet.
+# SCE - Slime Clothing Extension
 
-Its first clothes are the kimonos (in progress: the furisode, standing pose, every chest and hip size).
+Made by **SlimeQueenSamantha**.
 
-Install (Tampermonkey or Violentmonkey): https://proudkiller0015.github.io/sce/loader.user.js Item names start with `Slime` (e.g. `SlimeKimono`); they are saved in
-players' outfits, so **never rename an item after release**. The add-on ID `SCE` is permanent too.
+More clothes for [Bondage Club](https://www.bondageprojects.elementfx.com/), with many options and every part in its own colour. The kimonos come first.
 
-## What it does
+## Install
 
-- `addon.js` registers the clothes in `clothes/clothes.json` with the game, in their clothing groups, with their
-  pictures, previews and option texts. Pictures are drawn standing; in poses their group draws differently they show
-  only where a piece's `Fits` says they still sit right.
-- It keeps your clothes on when someone without the add-on changes your outfit (their game doesn't know them).
-  Players with the add-on are recognised by a key in their shared settings.
-- Outfits: a row at the end of the wardrobe puts on a whole outfit, or any item of it on its own, in its colours.
-  It never touches a locked item or a blocked slot.
-- Every game hook is guarded: a feature that meets a game it doesn't expect switches itself off for the session, and
-  the game carries on untouched.
+**Easiest: [the install page](https://proudkiller0015.github.io/sce/install.html)** has every way. Pick one.
 
-What it does not have (Void-only parts left out): the Order's server, the power armour carry limit, any weapons.
+- **🐒 Userscript:** with [Violentmonkey](https://violentmonkey.github.io/) or [Tampermonkey](https://www.tampermonkey.net/), click **[Install SCE](https://raw.githubusercontent.com/Proudkiller0015/sce/main/sce.user.js)** and confirm. It starts with the game every time.
+- **🔖 Bookmark, no extension needed:** drag the SCE button from the install page onto your bookmarks bar, then click it on the login screen.
 
-## Adding clothes
+Both run the same SCE and always load its newest version, so there's nothing to update by hand. Other players see your SCE clothes when they have SCE too; if someone without it changes your outfit, your SCE clothes stay on.
 
-1. Put the drawings in `art/out/` (the kimono pictures there are generated and not kept in the repo): `pieces.json`, `<Group>/<Asset>_<Layer>.png`, `preview-<Asset>.png`
-   (the format is at the top of `tools/build-clothes.js`).
-2. `node tools/build-clothes.js` writes `clothes/`.
-3. Load `addon.js` on a test copy of the game and check every piece, standing and posed, with Echo, WCE, BCX and MBS
-   loaded alongside.
+## Use
 
-## Before it goes public
+- **👘 Kimono** (Clothes): pick it in your wardrobe; SCE's clothes carry the slime kimono badge on their tile. Click it again for its options:
+  - **Style:** Furisode (more styles coming).
+  - **Sleeves:** Long sleeves, Detached sleeves (bare shoulders) or Sleeveless.
+  - **Pattern:** Plain, Sakura, Seigaiha waves, Asanoha or Akatsuki clouds.
+  - **Collar** and **Obi cord:** on or off.
+  - **Colours:** the kimono, sleeves, lining, pattern, pattern outline, collar, sleeve band, obi and obi cord each have their own.
+  - Fits every chest and hip size. Standing for now; poses are being drawn.
+- **⚙ Settings > Extensions > Slime Clothing Extension:** the badge on/off, the update-ready notice and the update notes.
+- **🔔 Updates:** a notice tells you when a newer SCE is ready (reload the game to get it), and what's new shows once after an update.
 
-- Create the GitHub repo `Proudkiller0015/sce` with Pages (BASE in `loader.user.js` already points there).
-- Test alongside Echo, WCE, BCX and MBS; checks + screenshots + a review before every push (FUSAM users get each push).
+## For developers
+
+- `sce.js` registers the clothes in `clothes/clothes.json` with the game (pictures, texts, option names, colour layer names), keeps them on when someone without SCE changes your outfit, and adds the wardrobe badge, the settings page and the update notices. Every game hook is guarded: a feature that meets a game it doesn't expect switches itself off for the session and the game carries on untouched.
+- `sce.user.js` is the loader: it adds the newest `sce.js` from GitHub Pages (jsDelivr as a backup) on every game load.
+- `tools/build-clothes.js` builds `clothes/` from `art/out/pieces.json` and the pictures in `art/out/<Group>/` (the kimono pictures are generated and not kept in the repo). Item names are saved in players' outfits: never rename one after release.
+- Pictures are fetched with `sce.js`'s VERSION: raise it whenever pictures change. `news.json` holds each version's note.
+- `node test-smoke.js` (with `BC_ROOT` and `CHROME` set) checks it on a clean copy of the game.

@@ -194,10 +194,11 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		};
 		texts[`${key}SelectBase`] = `${p.Description}: choose how it is worn.`;
 		for (const m of modules) {
-			texts[`${key}Module${m.Name}`] = words(m.Name);
-			texts[`${key}Select${m.Name}`] = `${words(m.Name)}:`;
+			texts[`${key}Module${m.Name}`] = m.Text || words(m.Name);
+			texts[`${key}Select${m.Name}`] = `Select ${(m.Text || words(m.Name)).toLowerCase()}`;
 			m.Options.forEach((/** @type {any} */ o, /** @type {number} */ i) => {
-				texts[`${key}Option${m.Name}${i}`] = words(o.Name);
+				// The game names a module's options <Key><index> ("l1").
+				texts[`${key}Option${m.Key || m.Name}${i}`] = o.Text || words(o.Name);
 			});
 		}
 	}
@@ -205,11 +206,13 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		extended = { Archetype: 'typed', Options: options.map((/** @type {any} */ o) => ({ Name: o.Name, ...asOption(o) })) };
 		texts[`${key}Select`] = `${p.Description}: choose how it is worn.`;
 		for (const o of options) {
-			texts[`${key}${o.Name}`] = words(o.Name);
+			texts[`${key}${o.Name}`] = o.Text || words(o.Name);
 		}
 	}
 	const fits = Array.isArray(p.Fits) ? p.Fits.filter((/** @type {any} */ f) => LAYER.test(f)) : [];
-	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, fits };
+	/** @type {Record<string, string>} Layer names in the colour screen, by the game's key <Group><Asset><Layer>. */
+	const layerNames = Object.fromEntries(p.Layer.map((/** @type {any} */ l) => [`${p.Group}${p.Name}${l.Name}`, l.Text || words(l.Name)]));
+	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, fits };
 });
 
 const images = [...written].filter((f) => f.startsWith('img/')).sort();

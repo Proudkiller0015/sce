@@ -1,31 +1,48 @@
 // ==UserScript==
-// @name         Slime Clothing Extension (loader)
-// @namespace    slime-clothing-extension
-// @version      0.1.1
-// @description  Loads the newest Slime Clothing Extension (SCE) add-on for Bondage Club.
-// @match        https://bondageprojects.elementfx.com/*
+// @name         SCE - Slime Clothing Extension
+// @namespace    https://github.com/Proudkiller0015/sce
+// @version      1.0.0
+// @description  More clothes for Bondage Club, with many options and colours: kimonos first. Always runs the newest version.
+// @icon         https://raw.githubusercontent.com/Proudkiller0015/sce/main/icon-64.png
+// @homepageURL  https://github.com/Proudkiller0015/sce
+// @downloadURL  https://raw.githubusercontent.com/Proudkiller0015/sce/main/sce.user.js
+// @updateURL    https://raw.githubusercontent.com/Proudkiller0015/sce/main/sce.user.js
 // @match        https://www.bondageprojects.elementfx.com/*
-// @match        https://bondage-europe.com/*
-// @match        https://www.bondage-europe.com/*
+// @match        https://bondageprojects.elementfx.com/*
 // @match        https://bondageprojects.com/*
 // @match        https://www.bondageprojects.com/*
-// @match        https://bondage-asia.com/*
-// @match        https://www.bondage-asia.com/*
-// @match        https://bondageeurope.com/*
+// @match        https://www.bondage-europe.com/*
+// @match        https://bondage-europe.com/*
 // @match        https://www.bondageeurope.com/*
+// @match        https://bondageeurope.com/*
+// @match        https://www.bondage-asia.com/*
+// @match        https://bondage-asia.com/*
 // @run-at       document-end
 // @grant        none
-// @updateURL    https://proudkiller0015.github.io/sce/loader.user.js
-// @downloadURL  https://proudkiller0015.github.io/sce/loader.user.js
 // ==/UserScript==
 
-// Loads the newest add-on from its GitHub Pages home on every game load; this loader updates itself through @updateURL.
-(() => {
+/*
+ * The SCE loader. It never needs updating: on every game load it adds the newest SCE, so new clothes reach
+ * everybody the next time they reload. SCE comes from GitHub Pages; if that fails, from jsDelivr (a copy of the
+ * GitHub repo). SCE fetches its clothes from the same place it was loaded from.
+ */
+(function () {
 	'use strict';
-	const BASE = 'https://proudkiller0015.github.io/sce/';
-	/** @type {any} */ (window).SCEBase = BASE;
-	const s = document.createElement('script');
-	s.src = `${BASE}addon.js?t=${Date.now()}`;
-	s.async = true;
-	document.head.appendChild(s);
+	const minute = Math.floor(Date.now() / 60000);
+	const homes = ['https://proudkiller0015.github.io/sce/', 'https://cdn.jsdelivr.net/gh/Proudkiller0015/sce@main/'];
+	const add = (i = 0) => {
+		if (i >= homes.length || window.SCELoaded) {
+			return;
+		}
+		window.SCEBase = homes[i];
+		const script = document.createElement('script');
+		script.src = `${homes[i]}sce.js?v=${minute}`;
+		script.crossOrigin = 'anonymous';
+		script.onerror = () => {
+			script.remove();
+			add(i + 1);
+		};
+		document.head.appendChild(script);
+	};
+	add();
 })();

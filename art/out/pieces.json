@@ -7,139 +7,21 @@
 			"Priority": 30,
 			"Layer": [
 				{
-					"Name": "Skirt",
-					"Left": 134,
-					"Top": 317,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s"
-					],
-					"ParentGroup": "BodyLower",
-					"CopyLayerColor": "Fabric",
-					"Color": "#2B3A67"
-				},
-				{
-					"Name": "SkirtPattern",
-					"Left": 134,
-					"Top": 317,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s",
-						"p"
-					],
-					"ParentGroup": "BodyLower",
-					"CopyLayerColor": "Pattern",
-					"Color": "#F2B5C4",
-					"AllowTypes": {
-						"p": [
-							1,
-							2,
-							3,
-							4
-						]
-					}
-				},
-				{
-					"Name": "SkirtPatternEdge",
-					"Left": 135,
-					"Top": 317,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s",
-						"p"
-					],
-					"ParentGroup": "BodyLower",
-					"CopyLayerColor": "PatternEdge",
-					"Color": "#FFFFFF",
-					"AllowTypes": {
-						"p": [
-							1,
-							2,
-							3,
-							4
-						]
-					}
-				},
-				{
-					"Name": "Lining",
-					"Left": 134,
-					"Top": 400,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s"
-					],
-					"ParentGroup": "BodyLower",
-					"Color": "#B8324A"
-				},
-				{
-					"Name": "Fabric",
-					"Left": 172,
-					"Top": 223,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s"
-					],
-					"ParentGroup": "BodyUpper",
-					"Color": "#2B3A67"
-				},
-				{
-					"Name": "Pattern",
-					"Left": 172,
+					"Name": "Kimono",
+					"Text": "Kimono",
+					"Left": 128,
 					"Top": 223,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
-						"p"
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#F2B5C4",
-					"AllowTypes": {
-						"p": [
-							1,
-							2,
-							3,
-							4
-						]
-					}
-				},
-				{
-					"Name": "PatternEdge",
-					"Left": 179,
-					"Top": 264,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s",
-						"p"
-					],
-					"ParentGroup": "BodyUpper",
-					"Color": "#FFFFFF",
-					"AllowTypes": {
-						"p": [
-							1,
-							2,
-							3,
-							4
-						]
-					}
-				},
-				{
-					"Name": "Collar",
-					"Left": 223,
-					"Top": 220,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s"
-					],
-					"ParentGroup": "BodyUpper",
-					"Color": "#F2EEE6",
-					"AllowTypes": {
-						"e": [
-							0
-						]
-					}
+					"Color": "#2B3A67"
 				},
 				{
 					"Name": "Sleeves",
+					"Text": "Sleeves",
 					"Left": 96,
 					"Top": 232,
 					"Priority": 30,
@@ -157,9 +39,23 @@
 					}
 				},
 				{
-					"Name": "SleevePattern",
+					"Name": "Lining",
+					"Text": "Lining",
+					"Left": 127,
+					"Top": 394,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"Color": "#B8324A"
+				},
+				{
+					"Name": "Pattern",
+					"Text": "Pattern",
 					"Left": 96,
-					"Top": 232,
+					"Top": 223,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -167,13 +63,8 @@
 						"p"
 					],
 					"ParentGroup": "BodyUpper",
-					"CopyLayerColor": "Pattern",
 					"Color": "#F2B5C4",
 					"AllowTypes": {
-						"l": [
-							0,
-							1
-						],
 						"p": [
 							1,
 							2,
@@ -183,7 +74,8 @@
 					}
 				},
 				{
-					"Name": "SleevePatternEdge",
+					"Name": "PatternOutline",
+					"Text": "Pattern outline",
 					"Left": 123,
 					"Top": 253,
 					"Priority": 30,
@@ -193,13 +85,8 @@
 						"p"
 					],
 					"ParentGroup": "BodyUpper",
-					"CopyLayerColor": "PatternEdge",
 					"Color": "#FFFFFF",
 					"AllowTypes": {
-						"l": [
-							0,
-							1
-						],
 						"p": [
 							1,
 							2,
@@ -209,32 +96,30 @@
 					}
 				},
 				{
-					"Name": "SleeveLining",
-					"Left": 143,
-					"Top": 394,
+					"Name": "Collar",
+					"Text": "Collar",
+					"Left": 223,
+					"Top": 220,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s",
-						"l"
+						"s"
 					],
 					"ParentGroup": "BodyUpper",
-					"CopyLayerColor": "Lining",
-					"Color": "#B8324A",
+					"Color": "#F2EEE6",
 					"AllowTypes": {
-						"l": [
-							0,
-							1
+						"e": [
+							0
 						]
 					}
 				},
 				{
 					"Name": "SleeveBand",
+					"Text": "Sleeve band",
 					"Left": 153,
 					"Top": 300,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s",
-						"l"
+						"s"
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
@@ -246,6 +131,7 @@
 				},
 				{
 					"Name": "Obi",
+					"Text": "Obi",
 					"Left": 187,
 					"Top": 316,
 					"Priority": 30,
@@ -257,6 +143,7 @@
 				},
 				{
 					"Name": "Cord",
+					"Text": "Obi cord",
 					"Left": 188,
 					"Top": 339,
 					"Priority": 30,
@@ -290,13 +177,16 @@
 					"Key": "l",
 					"Options": [
 						{
-							"Name": "Attached"
+							"Name": "Attached",
+							"Text": "Long sleeves"
 						},
 						{
-							"Name": "Detached"
+							"Name": "Detached",
+							"Text": "Detached sleeves"
 						},
 						{
-							"Name": "None"
+							"Name": "None",
+							"Text": "Sleeveless"
 						}
 					]
 				},
@@ -305,19 +195,24 @@
 					"Key": "p",
 					"Options": [
 						{
-							"Name": "None"
+							"Name": "None",
+							"Text": "Plain"
 						},
 						{
-							"Name": "Sakura"
+							"Name": "Sakura",
+							"Text": "Sakura"
 						},
 						{
-							"Name": "Seigaiha"
+							"Name": "Seigaiha",
+							"Text": "Seigaiha waves"
 						},
 						{
-							"Name": "Asanoha"
+							"Name": "Asanoha",
+							"Text": "Asanoha"
 						},
 						{
-							"Name": "Akatsuki"
+							"Name": "Akatsuki",
+							"Text": "Akatsuki clouds"
 						}
 					]
 				},
@@ -326,22 +221,27 @@
 					"Key": "e",
 					"Options": [
 						{
-							"Name": "CollarOn"
+							"Name": "CollarOn",
+							"Text": "With collar"
 						},
 						{
-							"Name": "CollarOff"
+							"Name": "CollarOff",
+							"Text": "No collar"
 						}
 					]
 				},
 				{
 					"Name": "Cord",
 					"Key": "c",
+					"Text": "Obi cord",
 					"Options": [
 						{
-							"Name": "CordOn"
+							"Name": "CordOn",
+							"Text": "With obi cord"
 						},
 						{
-							"Name": "CordOff"
+							"Name": "CordOff",
+							"Text": "No obi cord"
 						}
 					]
 				}
