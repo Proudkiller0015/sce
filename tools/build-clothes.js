@@ -130,6 +130,13 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		if (types.length) {
 			layer.CreateLayerTypes = types;
 		}
+		// Layers with the same ColorGroup share one row in the colour screen.
+		if (l.ColorGroup) {
+			if (!LAYER.test(l.ColorGroup)) {
+				fail(`piece ${p.Name}, layer ${l.Name}: ColorGroup is a name`);
+			}
+			layer.ColorGroup = l.ColorGroup;
+		}
 		layer.AllowColorize = l.AllowColorize !== false;
 		// The game takes a layer's default colour from the layer (older versions from the item's DefaultColor).
 		if (layer.AllowColorize) {
@@ -212,7 +219,11 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 	const fits = Array.isArray(p.Fits) ? p.Fits.filter((/** @type {any} */ f) => LAYER.test(f)) : [];
 	/** @type {Record<string, string>} Layer names in the colour screen, by the game's key <Group><Asset><Layer>. */
 	const layerNames = Object.fromEntries(p.Layer.map((/** @type {any} */ l) => [`${p.Group}${p.Name}${l.Name}`, l.Text || words(l.Name)]));
-	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, fits };
+	/** @type {Record<string, string>} Colour group rows' names, by <Group><Asset><ColorGroup>. */
+	const groupNames = Object.fromEntries(
+		p.Layer.filter((/** @type {any} */ l) => l.ColorGroup).map((/** @type {any} */ l) => [`${p.Group}${p.Name}${l.ColorGroup}`, words(l.ColorGroup)]),
+	);
+	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, groupNames, fits };
 });
 
 const images = [...written].filter((f) => f.startsWith('img/')).sort();

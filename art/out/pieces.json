@@ -9,7 +9,7 @@
 				{
 					"Name": "Kimono",
 					"Text": "Kimono",
-					"Left": 128,
+					"Left": 132,
 					"Top": 223,
 					"Priority": 30,
 					"CreateLayerTypes": [
@@ -22,8 +22,8 @@
 				{
 					"Name": "Sleeves",
 					"Text": "Sleeves",
-					"Left": 96,
-					"Top": 232,
+					"Left": 92,
+					"Top": 237,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -41,8 +41,8 @@
 				{
 					"Name": "Lining",
 					"Text": "Lining",
-					"Left": 127,
-					"Top": 394,
+					"Left": 141,
+					"Top": 393,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -53,8 +53,8 @@
 				},
 				{
 					"Name": "Pattern",
-					"Text": "Pattern",
-					"Left": 96,
+					"Text": "Motif",
+					"Left": 92,
 					"Top": 223,
 					"Priority": 30,
 					"CreateLayerTypes": [
@@ -71,12 +71,13 @@
 							3,
 							4
 						]
-					}
+					},
+					"ColorGroup": "Pattern"
 				},
 				{
 					"Name": "PatternOutline",
-					"Text": "Pattern outline",
-					"Left": 123,
+					"Text": "Outline",
+					"Left": 121,
 					"Top": 232,
 					"Priority": 30,
 					"CreateLayerTypes": [
@@ -93,16 +94,18 @@
 							3,
 							4
 						]
-					}
+					},
+					"ColorGroup": "Pattern"
 				},
 				{
 					"Name": "Collar",
 					"Text": "Collar",
-					"Left": 223,
+					"Left": 221,
 					"Top": 220,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#F2EEE6",
@@ -115,11 +118,12 @@
 				{
 					"Name": "SleeveBand",
 					"Text": "Sleeve band",
-					"Left": 153,
-					"Top": 300,
+					"Left": 147,
+					"Top": 307,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
@@ -131,24 +135,27 @@
 				},
 				{
 					"Name": "Obi",
-					"Text": "Obi",
-					"Left": 187,
-					"Top": 316,
+					"Text": "Sash",
+					"Left": 188,
+					"Top": 317,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#D4AF37"
+					"Color": "#D4AF37",
+					"ColorGroup": "Obi"
 				},
 				{
 					"Name": "Cord",
-					"Text": "Obi cord",
-					"Left": 188,
+					"Text": "Cord",
+					"Left": 189,
 					"Top": 339,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
@@ -156,7 +163,8 @@
 						"c": [
 							0
 						]
-					}
+					},
+					"ColorGroup": "Obi"
 				}
 			],
 			"Modules": [

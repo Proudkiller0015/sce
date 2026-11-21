@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.3.0';
+	const VERSION = '0.4.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -123,6 +123,8 @@
 	const texts = new Map();
 	/** @type {Map<string, string>} The pieces' layer names in the colour screen, by <Group><Asset><Layer>. */
 	const layerNames = new Map();
+	/** @type {Map<string, string>} Their colour group rows' names, by <Group><Asset><ColorGroup>. */
+	const groupNames = new Map();
 
 	/** Whether an asset is one of the add-on's. */
 	const isOurs = (/** @type {any} */ asset) =>
@@ -220,6 +222,9 @@
 			for (const [k, v] of Object.entries(piece.layerNames || {})) {
 				layerNames.set(k, String(v));
 			}
+			for (const [k, v] of Object.entries(piece.groupNames || {})) {
+				groupNames.set(k, String(v));
+			}
 		}
 		hookLayerNames();
 		hookOutfits(data.outfits || {});
@@ -268,16 +273,19 @@
 	function hookLayerNames() {
 		hookGame('ItemColorLoad', 0, 'Layer names', (args, next) => {
 			const result = next(args);
-			// The game's cache is a script-level `let`, not a window property.
-			const cache = typeof ItemColorLayerNames === 'object' && ItemColorLayerNames ? ItemColorLayerNames : null;
-			if (cache && typeof cache.onRebuild === 'function') {
-				cache.onRebuild(() => {
-					if (cache.cache && typeof cache.cache === 'object') {
-						for (const [k, v] of layerNames) {
-							cache.cache[k] = v;
+			// The game's caches are script-level `let`s, not window properties.
+			const layers = typeof ItemColorLayerNames === 'object' && ItemColorLayerNames ? ItemColorLayerNames : null;
+			const groups = typeof ItemColorGroupNames === 'object' && ItemColorGroupNames ? ItemColorGroupNames : null;
+			for (const [cache, names] of /** @type {[any, Map<string, string>][]} */ ([[layers, layerNames], [groups, groupNames]])) {
+				if (cache && typeof cache.onRebuild === 'function') {
+					cache.onRebuild(() => {
+						if (cache.cache && typeof cache.cache === 'object') {
+							for (const [k, v] of names) {
+								cache.cache[k] = v;
+							}
 						}
-					}
-				}, true);
+					}, true);
+				}
 			}
 			return result;
 		});
