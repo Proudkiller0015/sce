@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Untitled Wardrobe (loader)
-// @namespace    untitled-wardrobe
+// @name         Slime Clothing Extension (loader)
+// @namespace    slime-clothing-extension
 // @version      0.1.0
-// @description  Loads the newest Untitled Wardrobe clothing add-on for Bondage Club.
+// @description  Loads the newest Slime Clothing Extension (SCE) add-on for Bondage Club.
 // @match        https://bondageprojects.elementfx.com/*
 // @match        https://www.bondageprojects.elementfx.com/*
 // @match        https://bondage-europe.com/*
@@ -17,11 +17,11 @@
 // @grant        none
 // ==/UserScript==
 
-// Not published yet: BASE is a placeholder until the add-on has a name and a home (e.g. its GitHub Pages address).
+// Not published yet: BASE is the planned GitHub Pages home; the repo does not exist yet.
 (() => {
 	'use strict';
-	const BASE = 'https://example.invalid/untitled-wardrobe/';
-	/** @type {any} */ (window).UntitledWardrobeBase = BASE;
+	const BASE = 'https://proudkiller0015.github.io/sce/';
+	/** @type {any} */ (window).SCEBase = BASE;
 	const s = document.createElement('script');
 	s.src = `${BASE}addon.js?t=${Date.now()}`;
 	s.async = true;

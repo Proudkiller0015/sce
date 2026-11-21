@@ -1,4 +1,4 @@
-// Untitled Wardrobe (working name): a Bondage Club clothing add-on, Echo-style. It adds its own clothes to the game's
+// Slime Clothing Extension (SCE): a Bondage Club clothing add-on, Echo-style. It adds its own clothes to the game's
 // clothing groups, with their pictures and texts, and a row at the end of the wardrobe that puts on its outfits in one
 // go. The clothes are listed in clothes/clothes.json, built by tools/build-clothes.js; today the list is empty.
 //
@@ -9,12 +9,12 @@
 	/** @type {any} */
 	const w = window;
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
-	const ADDON_ID = 'UntitledWardrobe';
-	const ADDON_NAME = 'Untitled Wardrobe';
+	const ADDON_ID = 'SCE';
+	const ADDON_NAME = 'Slime Clothing Extension';
 	const VERSION = '0.1.0';
-	/** Where clothes/ lives: the loader sets UntitledWardrobeBase; else next to this script. */
+	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
-		w.UntitledWardrobeBase ||
+		w.SCEBase ||
 		(document.currentScript && /** @type {HTMLScriptElement} */ (document.currentScript).src.replace(/[^/]*$/, '')) ||
 		''
 	).replace(/\/?$/, '/');
@@ -22,10 +22,10 @@
 	/** Added to every picture's address, so a release that redraws a piece is never mixed with a browser's old copies. */
 	const FRESH = `?v=${encodeURIComponent(VERSION)}`;
 
-	if (w.UntitledWardrobeLoaded) {
+	if (w.SCELoaded) {
 		return;
 	}
-	w.UntitledWardrobeLoaded = VERSION;
+	w.SCELoaded = VERSION;
 
 	// ---- Guard: hooks that switch their feature off instead of breaking the game
 	/** @type {any} */
@@ -514,6 +514,6 @@
 	}
 
 	/** For the console and tests: what is registered, and which features were switched off. */
-	w.UntitledWardrobe = { version: VERSION, pieces, problems, outfits: () => outfitChoices };
+	w.SCE = { version: VERSION, pieces, problems, outfits: () => outfitChoices };
 	start();
 })();

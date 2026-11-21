@@ -25,7 +25,7 @@ const PNG = Buffer.from(
 	'base64',
 );
 function addonDir(/** @type {boolean} */ withPiece) {
-	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wardrobe-'));
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sce-'));
 	fs.copyFileSync(path.join(__dirname, 'addon.js'), path.join(dir, 'addon.js'));
 	fs.mkdirSync(path.join(dir, 'clothes', 'img', 'Hat'), { recursive: true });
 	fs.mkdirSync(path.join(dir, 'clothes', 'preview'), { recursive: true });
@@ -88,12 +88,12 @@ async function run(/** @type {any} */ browser, /** @type {boolean} */ withPiece)
 	await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
 	await page.waitForFunction(() => Array.isArray(window.Asset) && window.Asset.length > 100 && window.bcModSdk, { timeout: 60000 });
 	await page.evaluate((b) => {
-		window.UntitledWardrobeBase = `${b}/addon/`;
+		window.SCEBase = `${b}/addon/`;
 		const s = document.createElement('script');
 		s.src = `${b}/addon/addon.js`;
 		document.head.appendChild(s);
 	}, base);
-	await page.waitForFunction(() => window.UntitledWardrobe, { timeout: 20000 });
+	await page.waitForFunction(() => window.SCE, { timeout: 20000 });
 	await new Promise((r) => setTimeout(r, 1500));
 	const got = await page.evaluate(async () => {
 		const a = AssetGet('Female3DCG', 'Hat', 'SmokeTestCap');
@@ -106,8 +106,8 @@ async function run(/** @type {any} */ browser, /** @type {boolean} */ withPiece)
 			registered: !!a,
 			description: a && a.Description,
 			picture,
-			problems: [...window.UntitledWardrobe.problems],
-			outfits: window.UntitledWardrobe.outfits().map((o) => o.label),
+			problems: [...window.SCE.problems],
+			outfits: window.SCE.outfits().map((o) => o.label),
 			gameCap: !!AssetGet('Female3DCG', 'Hat', 'Beret1'),
 		};
 	});

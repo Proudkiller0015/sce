@@ -1,7 +1,10 @@
-# Untitled Wardrobe (working name)
+# Slime Clothing Extension (SCE)
 
-A future Bondage Club clothing add-on, in the spirit of Echo's clothing pack. **It has no clothes yet, no name and no
-home**: nothing is published, nothing is installed anywhere.
+A Bondage Club clothing add-on in the spirit of Echo's clothing pack, by SlimeQueenSamantha. Planned home: GitHub
+Pages at `https://proudkiller0015.github.io/sce/` (repo not created yet), later FUSAM. Nothing is published yet.
+
+Its first clothes are the kimonos (in progress). Item names start with `Slime` (e.g. `SlimeKimono`); they are saved in
+players' outfits, so **never rename an item after release**. The add-on ID `SCE` is permanent too.
 
 ## What it does
 
@@ -27,6 +30,5 @@ What it does not have (Void-only parts left out): the Order's server, the power 
 
 ## Before it goes public
 
-- Choose the name: change `ADDON_ID` / `ADDON_NAME` in `addon.js`, the `UntitledWardrobe*` globals, the loader's
-  header, and pick an asset-name prefix (see `NAME` in the build tool).
-- Give it a home (e.g. GitHub Pages) and set `BASE` in `loader.user.js`.
+- Create the GitHub repo `Proudkiller0015/sce` with Pages (BASE in `loader.user.js` already points there).
+- Test alongside Echo, WCE, BCX and MBS; checks + screenshots + a review before every push (FUSAM users get each push).
