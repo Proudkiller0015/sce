@@ -7,23 +7,40 @@
 			"Priority": 30,
 			"Layer": [
 				{
-					"Name": "Kimono",
-					"Text": "Kimono",
-					"Left": 128,
-					"Top": 223,
+					"Name": "Lining",
+					"Left": 139,
+					"Top": 863,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
 						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#2B3A67"
+					"Color": "#B8324A",
+					"Text": "Lining"
 				},
 				{
-					"Name": "Sleeves",
-					"Text": "Sleeves",
-					"Left": 96,
-					"Top": 232,
+					"Name": "Collar",
+					"Left": 216,
+					"Top": 222,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"Color": "#F2EEE6",
+					"Text": "Collar",
+					"AllowTypes": {
+						"e": [
+							0
+						]
+					}
+				},
+				{
+					"Name": "Kimono",
+					"Left": 139,
+					"Top": 224,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -31,31 +48,12 @@
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#2B3A67",
-					"AllowTypes": {
-						"l": [
-							0,
-							1
-						]
-					}
-				},
-				{
-					"Name": "Lining",
-					"Text": "Lining",
-					"Left": 127,
-					"Top": 394,
-					"Priority": 30,
-					"CreateLayerTypes": [
-						"s",
-						"l"
-					],
-					"ParentGroup": "BodyUpper",
-					"Color": "#B8324A"
+					"Text": "Kimono"
 				},
 				{
 					"Name": "Pattern",
-					"Text": "Pattern",
-					"Left": 96,
-					"Top": 223,
+					"Left": 139,
+					"Top": 224,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -64,6 +62,8 @@
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#F2B5C4",
+					"Text": "Motif",
+					"ColorGroup": "Pattern",
 					"AllowTypes": {
 						"p": [
 							1,
@@ -75,8 +75,7 @@
 				},
 				{
 					"Name": "PatternOutline",
-					"Text": "Pattern outline",
-					"Left": 123,
+					"Left": 157,
 					"Top": 232,
 					"Priority": 30,
 					"CreateLayerTypes": [
@@ -86,6 +85,8 @@
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#FFFFFF",
+					"Text": "Outline",
+					"ColorGroup": "Pattern",
 					"AllowTypes": {
 						"p": [
 							1,
@@ -96,55 +97,78 @@
 					}
 				},
 				{
-					"Name": "Collar",
-					"Text": "Collar",
-					"Left": 223,
-					"Top": 220,
+					"Name": "Shade",
+					"Left": 139,
+					"Top": 224,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#F2EEE6",
-					"AllowTypes": {
-						"e": [
-							0
-						]
-					}
+					"Color": "#000000",
+					"Text": "Shade",
+					"ColorGroup": "Shading"
 				},
 				{
-					"Name": "SleeveBand",
-					"Text": "Sleeve band",
-					"Left": 153,
-					"Top": 300,
+					"Name": "Lines",
+					"Left": 139,
+					"Top": 223,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#B8324A",
-					"AllowTypes": {
-						"l": [
-							1
-						]
-					}
+					"Color": "#141018",
+					"Text": "Lines",
+					"ColorGroup": "Shading"
 				},
 				{
 					"Name": "Obi",
-					"Text": "Obi",
-					"Left": 187,
-					"Top": 316,
+					"Left": 189,
+					"Top": 317,
 					"Priority": 30,
 					"CreateLayerTypes": [
-						"s"
+						"s",
+						"l"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#D4AF37"
+					"Color": "#D4AF37",
+					"Text": "Sash",
+					"ColorGroup": "Obi"
+				},
+				{
+					"Name": "ObiShade",
+					"Left": 189,
+					"Top": 319,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Shade",
+					"Color": "#000000",
+					"Text": "Shade"
+				},
+				{
+					"Name": "ObiLines",
+					"Left": 189,
+					"Top": 317,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Lines",
+					"Color": "#141018",
+					"Text": "Lines"
 				},
 				{
 					"Name": "Cord",
-					"Text": "Obi cord",
-					"Left": 188,
+					"Left": 190,
 					"Top": 339,
 					"Priority": 30,
 					"CreateLayerTypes": [
@@ -152,9 +176,162 @@
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
+					"Text": "Cord",
+					"ColorGroup": "Obi",
 					"AllowTypes": {
 						"c": [
 							0
+						]
+					}
+				},
+				{
+					"Name": "SleeveLining",
+					"Left": 138,
+					"Top": 390,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Lining",
+					"Color": "#B8324A",
+					"Text": "Lining",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						]
+					}
+				},
+				{
+					"Name": "Sleeves",
+					"Left": 92,
+					"Top": 243,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"Color": "#2B3A67",
+					"Text": "Sleeves",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						]
+					}
+				},
+				{
+					"Name": "SleevePattern",
+					"Left": 92,
+					"Top": 243,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l",
+						"p"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Pattern",
+					"Color": "#F2B5C4",
+					"Text": "Motif",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						],
+						"p": [
+							1,
+							2,
+							3,
+							4
+						]
+					}
+				},
+				{
+					"Name": "SleevePatternOutline",
+					"Left": 121,
+					"Top": 254,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l",
+						"p"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "PatternOutline",
+					"Color": "#FFFFFF",
+					"Text": "Outline",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						],
+						"p": [
+							1,
+							2,
+							3,
+							4
+						]
+					}
+				},
+				{
+					"Name": "SleeveShade",
+					"Left": 97,
+					"Top": 268,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Shade",
+					"Color": "#000000",
+					"Text": "Shade",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						]
+					}
+				},
+				{
+					"Name": "SleeveLines",
+					"Left": 92,
+					"Top": 243,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"CopyLayerColor": "Lines",
+					"Color": "#141018",
+					"Text": "Lines",
+					"AllowTypes": {
+						"l": [
+							0,
+							1
+						]
+					}
+				},
+				{
+					"Name": "SleeveBand",
+					"Left": 147,
+					"Top": 307,
+					"Priority": 30,
+					"CreateLayerTypes": [
+						"s",
+						"l"
+					],
+					"ParentGroup": "BodyUpper",
+					"Color": "#B8324A",
+					"Text": "Sleeve band",
+					"AllowTypes": {
+						"l": [
+							1
 						]
 					}
 				}
