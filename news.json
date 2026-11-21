@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.2.1",
+		"title": "Slime Clothing Extension v0.2.1",
+		"text": "The kimono fits Echo's body styles (V1 and V2) at the shoulders too."
+	},
+	{
 		"id": "0.2.0",
 		"title": "Slime Clothing Extension v0.2.0",
 		"text": "The kimono now has proper names everywhere, one whole layer per colour, a tile picture, the SCE badge on our clothes, and a settings page in Preferences > Extensions. You'll be told when an update is ready."
