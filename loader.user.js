@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Slime Clothing Extension (loader)
 // @namespace    slime-clothing-extension
-// @version      0.1.0
+// @version      0.1.1
 // @description  Loads the newest Slime Clothing Extension (SCE) add-on for Bondage Club.
 // @match        https://bondageprojects.elementfx.com/*
 // @match        https://www.bondageprojects.elementfx.com/*
@@ -15,9 +15,11 @@
 // @match        https://www.bondageeurope.com/*
 // @run-at       document-end
 // @grant        none
+// @updateURL    https://proudkiller0015.github.io/sce/loader.user.js
+// @downloadURL  https://proudkiller0015.github.io/sce/loader.user.js
 // ==/UserScript==
 
-// Not published yet: BASE is the planned GitHub Pages home; the repo does not exist yet.
+// Loads the newest add-on from its GitHub Pages home on every game load; this loader updates itself through @updateURL.
 (() => {
 	'use strict';
 	const BASE = 'https://proudkiller0015.github.io/sce/';
