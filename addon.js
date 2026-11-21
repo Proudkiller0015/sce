@@ -256,15 +256,16 @@
 
 	/** The add-on's address for one of the game's picture paths, or '' when it isn't one of ours. */
 	function picture(/** @type {string} */ url) {
-		const m = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:(Preview)\/)?([A-Za-z0-9]+?)(?:_([A-Za-z0-9]+))?\.png$/.exec(url);
+		// Assets/Female3DCG/<Group>/[<Pose>/]<Asset>[_<option types>]_<Layer>.png, or <Group>/Preview/<Asset>.png
+		const m = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9]+)\/)?([A-Za-z0-9]+?)((?:_[A-Za-z0-9]+)*)\.png$/.exec(url);
 		const piece = m && pieces.get(m[3]);
 		if (!m || !piece || piece.group !== m[1]) {
 			return '';
 		}
-		if (m[2]) {
+		if (m[2] === 'Preview') {
 			return m[4] ? '' : `${CLOTHES}preview/${piece.name}.png${FRESH}`;
 		}
-		const file = `img/${piece.group}/${piece.name}_${m[4]}.png`;
+		const file = `img/${piece.group}/${m[2] ? `${m[2]}/` : ''}${piece.name}${m[4]}.png`;
 		return images.has(file) ? `${CLOTHES}${file}${FRESH}` : '';
 	}
 	/** Sends the game's requests for our pictures to the add-on's copies, and gives our buttons their pictures. */

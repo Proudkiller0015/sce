@@ -48,6 +48,27 @@ function copy(/** @type {string} */ from, /** @type {string} */ to) {
 	written.add(to.split(path.sep).join('/'));
 }
 
+/**
+ * The item's default colours in the game's order: one per colour button, numbered by first appearance in the layer
+ * list, where a layer with CopyLayerColor counts as the layer it copies.
+ * @param {{ layer: any, color: string }[]} layers
+ */
+function defaultColors(layers) {
+	/** @type {Map<string, string>} */
+	const byKey = new Map();
+	const own = new Map(layers.filter((x) => !x.layer.CopyLayerColor).map((x) => [x.layer.Name, x.color]));
+	for (const x of layers) {
+		if (!x.layer.AllowColorize) {
+			continue;
+		}
+		const key = x.layer.CopyLayerColor || x.layer.Name;
+		if (!byKey.has(key)) {
+			byKey.set(key, own.get(key) || x.color);
+		}
+	}
+	return [...byKey.values()];
+}
+
 const names = new Set();
 const pieces = source.pieces.map((/** @type {any} */ p) => {
 	if (!NAME.test(p.Name) || !LAYER.test(p.Group || '') || !Array.isArray(p.Layer) || !p.Layer.length) {
@@ -65,8 +86,8 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		fail(`piece ${p.Name}: Options or Modules, not both`);
 	}
 	/** Every list of choices: [its key in AllowTypes, its options]. */
-	const lists = options.length ? [['typed', options]] : modules.map((/** @type {any} */ m) => [m.Name, m.Options || []]);
-	if (modules.some((/** @type {any} */ m) => !LAYER.test(m.Name) || !Array.isArray(m.Options) || !m.Options.length)) {
+	const lists = options.length ? [['typed', options]] : modules.map((/** @type {any} */ m) => [m.Key || m.Name, m.Options || []]);
+	if (modules.some((/** @type {any} */ m) => !LAYER.test(m.Name) || (m.Key && !/^[a-z]+$/.test(m.Key)) || !Array.isArray(m.Options) || !m.Options.length)) {
 		fail(`piece ${p.Name}: each module needs a name and options`);
 	}
 	/** The options of a list in which a layer shows: all but those whose HideLayers names it (or its start). */
@@ -79,17 +100,54 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		if (!LAYER.test(l.Name) || !Number.isFinite(l.Left) || !Number.isFinite(l.Top) || !COLOR.test(l.Color || '')) {
 			fail(`piece ${p.Name}, layer ${l.Name}: needs a name, Left, Top and a #rrggbb colour`);
 		}
-		copy(path.join(SRC, p.Group, `${p.Name}_${l.Name}.png`), path.join('img', p.Group, `${p.Name}_${l.Name}.png`));
+		// The layer's pictures: <Asset>_<Layer>.png, or one per option when the layer has CreateLayerTypes
+		// (<Asset>_s1p3_<Layer>.png), standing in <Group>/ and in a pose's folder <Group>/<Pose>/.
+		const types = Array.isArray(l.CreateLayerTypes) ? l.CreateLayerTypes : [];
+		if (types.some((/** @type {string} */ t) => !/^[a-z]+$/.test(t))) {
+			fail(`piece ${p.Name}, layer ${l.Name}: CreateLayerTypes are module keys`);
+		}
+		// A layer with a ParentGroup (BodyUpper / BodyLower) has one picture per body size: <Asset>_<Size>_..._<Layer>.png
+		const parent = l.ParentGroup || '';
+		if (parent && !['BodyUpper', 'BodyLower'].includes(parent)) {
+			fail(`piece ${p.Name}, layer ${l.Name}: ParentGroup is BodyUpper or BodyLower`);
+		}
+		const size = parent ? '_[A-Za-z]+' : '';
+		const file = new RegExp(`^${p.Name}${size}${types.length ? `_${types.map((t) => `${t}\\d+`).join('')}` : ''}_${l.Name}\\.png$`);
+		const groupDir = path.join(SRC, p.Group);
+		const dirs = ['', ...fs.readdirSync(groupDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)];
+		let found = 0;
+		for (const dir of dirs) {
+			for (const f of fs.readdirSync(path.join(groupDir, dir)).filter((n) => file.test(n))) {
+				copy(path.join(groupDir, dir, f), path.join('img', p.Group, dir, f));
+				found++;
+			}
+		}
+		if (!found) {
+			fail(`piece ${p.Name}, layer ${l.Name}: no pictures`);
+		}
 		/** @type {Record<string, any>} */
-		const layer = { Name: l.Name, Left: l.Left, Top: l.Top, Priority: l.Priority ?? p.Priority, ParentGroup: '' };
+		const layer = { Name: l.Name, Left: l.Left, Top: l.Top, Priority: l.Priority ?? p.Priority, ParentGroup: parent };
+		if (types.length) {
+			layer.CreateLayerTypes = types;
+		}
 		layer.AllowColorize = l.AllowColorize !== false;
 		// The game takes a layer's default colour from the layer (older versions from the item's DefaultColor).
 		if (layer.AllowColorize) {
 			layer.Color = [l.Color];
 		}
-		/** @type {Record<string, number[]>} */
-		const allow = {};
+		// A layer that takes another layer's colour (one colour button for both).
+		if (l.CopyLayerColor) {
+			if (!p.Layer.some((/** @type {any} */ o) => o.Name === l.CopyLayerColor && !o.CopyLayerColor)) {
+				fail(`piece ${p.Name}, layer ${l.Name}: CopyLayerColor names no layer of its own colour`);
+			}
+			layer.CopyLayerColor = l.CopyLayerColor;
+		}
+		/** @type {Record<string, number[]>} The layer's own AllowTypes (module key: options it shows in), then HideLayers. */
+		const allow = { ...(l.AllowTypes || {}) };
 		for (const [k, list] of lists) {
+			if (allow[k]) {
+				continue;
+			}
 			const shown = shownIn(list, l.Name);
 			if (shown.length < list.length) {
 				allow[k] = shown;
@@ -112,7 +170,7 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		Priority: p.Priority,
 		Value: 0,
 		Hide: hide,
-		DefaultColor: layers.filter((/** @type {any} */ x) => x.layer.AllowColorize).map((/** @type {any} */ x) => x.color),
+		DefaultColor: defaultColors(layers),
 		Layer: layers.map((/** @type {any} */ x) => x.layer),
 	};
 	if (!def.DefaultColor.length) {
@@ -132,7 +190,7 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 	if (modules.length) {
 		extended = {
 			Archetype: 'modular',
-			Modules: modules.map((/** @type {any} */ m) => ({ Name: m.Name, Key: m.Name, Options: m.Options.map(asOption) })),
+			Modules: modules.map((/** @type {any} */ m) => ({ Name: m.Name, Key: m.Key || m.Name, Options: m.Options.map(asOption), DrawImages: false })),
 		};
 		texts[`${key}SelectBase`] = `${p.Description}: choose how it is worn.`;
 		for (const m of modules) {

@@ -3,7 +3,9 @@
 A Bondage Club clothing add-on in the spirit of Echo's clothing pack, by SlimeQueenSamantha. Planned home: GitHub
 Pages at `https://proudkiller0015.github.io/sce/` (repo not created yet), later FUSAM. Nothing is published yet.
 
-Its first clothes are the kimonos (in progress). Item names start with `Slime` (e.g. `SlimeKimono`); they are saved in
+Its first clothes are the kimonos (in progress: the furisode, standing pose, every chest and hip size).
+
+Install (Tampermonkey or Violentmonkey): https://proudkiller0015.github.io/sce/loader.user.js Item names start with `Slime` (e.g. `SlimeKimono`); they are saved in
 players' outfits, so **never rename an item after release**. The add-on ID `SCE` is permanent too.
 
 ## What it does
@@ -22,7 +24,7 @@ What it does not have (Void-only parts left out): the Order's server, the power 
 
 ## Adding clothes
 
-1. Put the drawings in `art/out/`: `pieces.json`, `<Group>/<Asset>_<Layer>.png`, `preview-<Asset>.png`
+1. Put the drawings in `art/out/` (the kimono pictures there are generated and not kept in the repo): `pieces.json`, `<Group>/<Asset>_<Layer>.png`, `preview-<Asset>.png`
    (the format is at the top of `tools/build-clothes.js`).
 2. `node tools/build-clothes.js` writes `clothes/`.
 3. Load `addon.js` on a test copy of the game and check every piece, standing and posed, with Echo, WCE, BCX and MBS
