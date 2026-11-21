@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.6.3';
+	const VERSION = '0.6.4';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -233,6 +233,7 @@
 		}
 		hookLayerNames();
 		hookColorHistory();
+		hookFullTypes();
 		hookOutfits(data.outfits || {});
 		hookGame('ValidationResolveRemoveDiff', 0, 'Keeping the clothes on', keepOnRemove);
 	}
@@ -309,6 +310,59 @@
 			return i >= 0 && typeof item.Color[i] === 'string' ? item.Color[i] : 'Default';
 		});
 	}
+	/**
+	 * A saved item that predates one of its options (an outfit saved before sleeves or collars could be chosen) has no
+	 * entry for it, and the game then draws none of the parts that depend on that option: the sleeves' edges and the
+	 * collar vanish and the pattern shows past the outline. Before anyone is drawn, a missing option is filled in with
+	 * its first choice.
+	 */
+	function hookFullTypes() {
+		/** @type {Map<string, string[]>} item name -> its option keys */
+		const keysOf = new Map();
+		const optionKeys = (/** @type {any} */ asset) => {
+			const name = `${asset.Group.Name}/${asset.Name}`;
+			if (!keysOf.has(name)) {
+				let keys = [];
+				try {
+					const data = w.ExtendedItemGetData(asset, 'modular');
+					keys = data && Array.isArray(data.modules) ? data.modules.map((m) => m.Key).filter((k) => typeof k === 'string') : [];
+				} catch {
+					keys = [];
+				}
+				if (!keys.length) {
+					return keys;
+				}
+				keysOf.set(name, keys);
+			}
+			return /** @type {string[]} */ (keysOf.get(name));
+		};
+		hookGame('CharacterAppearanceSortLayers', 0, 'Full options', (args, next) => {
+			const C = args[0];
+			// (the game draws from DrawAppearance, a copy of Appearance: both get it)
+			for (const list of C ? [C.Appearance, C.DrawAppearance] : []) {
+				if (!Array.isArray(list)) {
+					continue;
+				}
+				for (const item of list) {
+					if (!item || !isOurs(item.Asset)) {
+						continue;
+					}
+					const keys = optionKeys(item.Asset);
+					if (!keys.length) {
+						continue;
+					}
+					const record = item.Property && item.Property.TypeRecord;
+					if (record && keys.every((k) => typeof record[k] === 'number')) {
+						continue;
+					}
+					const full = Object.fromEntries(keys.map((k) => [k, record && typeof record[k] === 'number' ? record[k] : 0]));
+					item.Property = { ...(item.Property || {}), TypeRecord: { ...(record || {}), ...full } };
+				}
+			}
+			return next(args);
+		});
+	}
+
 	/** Draws everyone's older-order colours on the right parts; fixes your own saved outfit once. */
 	function hookColorHistory() {
 		// Saved outfits are parsed here, which cuts a colour list to today's length: map it by part first.
