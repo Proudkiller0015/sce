@@ -9,8 +9,8 @@
 				{
 					"Name": "Kimono",
 					"Text": "Kimono",
-					"Left": 128,
-					"Top": 223,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -23,8 +23,8 @@
 				{
 					"Name": "Sleeves",
 					"Text": "Sleeves",
-					"Left": 96,
-					"Top": 232,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -42,8 +42,8 @@
 				{
 					"Name": "Lining",
 					"Text": "Lining",
-					"Left": 127,
-					"Top": 394,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -55,8 +55,8 @@
 				{
 					"Name": "Pattern",
 					"Text": "Pattern",
-					"Left": 96,
-					"Top": 223,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -77,8 +77,8 @@
 				{
 					"Name": "PatternOutline",
 					"Text": "Pattern outline",
-					"Left": 123,
-					"Top": 232,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
@@ -99,8 +99,8 @@
 				{
 					"Name": "Collar",
 					"Text": "Collar",
-					"Left": 223,
-					"Top": 220,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s"
@@ -116,8 +116,8 @@
 				{
 					"Name": "SleeveBand",
 					"Text": "Sleeve band",
-					"Left": 153,
-					"Top": 300,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s"
@@ -133,8 +133,8 @@
 				{
 					"Name": "Obi",
 					"Text": "Obi",
-					"Left": 187,
-					"Top": 316,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s"
@@ -151,8 +151,8 @@
 				{
 					"Name": "Cord",
 					"Text": "Obi cord",
-					"Left": 188,
-					"Top": 339,
+					"Left": 0,
+					"Top": 0,
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s"
