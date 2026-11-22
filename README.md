@@ -18,7 +18,7 @@ Both run the same SCE and always load its newest version, so there's nothing to 
 ## Use
 
 - **👘 Kimono** (Clothes): pick it in your wardrobe; SCE's clothes carry the slime kimono badge on their tile. Click it again for its options:
-  - **Style:** Furisode (more styles coming).
+  - **Style:** Furisode or Short (more styles coming).
   - **Sleeves:** Long sleeves, Detached sleeves (bare shoulders) or Sleeveless.
   - **Pattern:** Plain, Sakura, Seigaiha waves, Asanoha, Akatsuki clouds or Dragon.
   - **Collar** and **Obi:** on or off.

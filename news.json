@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.0.1",
+		"title": "Slime Clothing Extension v1.0.1",
+		"text": "👘 New Kimono style: Short. Pick it in the Kimono's Style options."
+	},
+	{
 		"id": "1.0.0",
 		"title": "Slime Clothing Extension v1.0.0",
 		"text": "SCE 1.0! New in SCE's settings: a Clothing list and an Activity list, to see everything SCE adds. The SCE badge and the mark above SCE users always show now."
