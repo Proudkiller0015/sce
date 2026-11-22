@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.9.1';
+	const VERSION = '0.9.2';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -271,6 +271,21 @@
 		hookFullTypes();
 		hookOutfits(data.outfits || {});
 		hookGame('ValidationResolveRemoveDiff', 0, 'Keeping the clothes on', keepOnRemove);
+		if (data.pieces.some((/** @type {any} */ p) => pieces.has(p.name) && String(p.group).startsWith('Item'))) {
+			refreshCraftable();
+		}
+	}
+	/** The game lists what can be crafted when it loads its items: our items are added after, so the list is made again. */
+	function refreshCraftable() {
+		const populate = gameFunction('CraftingAssetsPopulate');
+		try {
+			// (a script-level `let` of the game's, not a window property)
+			if (populate && typeof CraftingAssets === 'object') {
+				CraftingAssets = populate();
+			}
+		} catch (e) {
+			problem('Restore crafts', e);
+		}
 	}
 	/**
 	 * The piece's definition for this game: drawn in the standing pictures, in every pose its group draws the same and
@@ -743,8 +758,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ badge: boolean, roomBadge: boolean, activities: boolean, updateReady: boolean, updateNotes: boolean }} */
-	const settings = { badge: true, roomBadge: true, activities: true, updateReady: true, updateNotes: true };
+	/** @type {{ badge: boolean, roomBadge: boolean, activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean }} */
+	const settings = { badge: true, roomBadge: true, activities: true, restoreCrafts: true, updateReady: true, updateNotes: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -883,11 +898,12 @@
 			['Show the SCE badge on our clothes and activities', 'badge'],
 			['Show the SCE mark on SCE users in chat rooms', 'roomBadge'],
 			['Add the SCE activities to the activity menu', 'activities'],
+			['Put dropped SCE crafts back by themselves (off: SCE asks first)', 'restoreCrafts'],
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
 		];
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
-		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 560, 64];
+		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 640, 64];
 		/** What the last press of the restore button did. */
 		let restoreSaid = '';
 		const mouseIn = (/** @type {number[]} */ r) => typeof w.MouseIn === 'function' && w.MouseIn(r[0], r[1], r[2], r[3]);
@@ -919,7 +935,7 @@
 							'Gray',
 						);
 						ctx.textAlign = 'center';
-						w.DrawButton(...RESTORE, 'Put my SCE clothes back', 'White');
+						w.DrawButton(...RESTORE, 'Put my SCE clothes and crafts back', 'White');
 						if (restoreSaid) {
 							ctx.textAlign = 'left';
 							w.DrawText(restoreSaid, RESTORE[0] + RESTORE[2] + 30, RESTORE[1] + 32, 'Black', 'Gray');
@@ -939,9 +955,8 @@
 							return;
 						}
 						if (mouseIn(RESTORE)) {
-							const back = restoreOutfit();
+							const back = putBack();
 							restoreSaid = back.length ? `Put back: ${back.join(', ')}` : 'Nothing was missing.';
-							saveOutfit();
 							return;
 						}
 						boxes.forEach(([, key], i) => {
@@ -963,14 +978,51 @@
 	// ---- Restore: if the game loads your outfit before SCE has added its clothes (a slow connection, the bookmark),
 	// it drops them as unknown. SCE keeps a copy of the SCE clothes you wear in your account's add-on settings and
 	// puts back what is missing once its clothes are in, into empty slots only.
-	/** Your account's copy of the SCE clothes you wear: [{ Group, Name, Color, Property }]. */
-	function savedOutfit() {
+	// Crafts the same way: the game drops a craft of an item it doesn't know yet at login, and erases it from your
+	// account the next time it saves your crafts. The copy keeps SCE's crafts (the game's own text for each) until they
+	// are back: by themselves, or with the settings button when the restoreCrafts setting is off.
+	/** Your account's copy: { worn: [{ Group, Name, Color, Property }], crafts: [{ slot, craft }] }. */
+	function saved() {
 		try {
 			const raw = w.Player && w.Player.ExtensionSettings && w.Player.ExtensionSettings[ADDON_ID];
 			const data = typeof raw === 'string' && raw ? JSON.parse(raw) : null;
-			return data && Array.isArray(data.worn) ? data.worn.filter((x) => x && typeof x.Group === 'string' && typeof x.Name === 'string') : [];
+			return {
+				worn: data && Array.isArray(data.worn) ? data.worn.filter((/** @type {any} */ x) => x && typeof x.Group === 'string' && typeof x.Name === 'string') : [],
+				crafts:
+					data && Array.isArray(data.crafts)
+						? data.crafts.filter((/** @type {any} */ x) => x && Number.isInteger(x.slot) && x.slot >= 0 && typeof x.craft === 'string' && x.craft)
+						: [],
+			};
 		} catch {
-			return [];
+			return { worn: [], crafts: [] };
+		}
+	}
+	const savedOutfit = () => saved().worn;
+	/** Whether a craft (the game's object) is of an SCE item. */
+	const isOurCraft = (/** @type {any} */ c) => !!c && typeof c.Item === 'string' && pieces.has(c.Item);
+	/** @type {{ slot: number, craft: string }[]} SCE crafts missing at login and not back yet (restoreCrafts off): the copy keeps them. */
+	let missingCrafts = [];
+	/** The SCE crafts you have now, as the copy keeps them; null when the game's crafts can't be read. */
+	function currentCrafts() {
+		const p = w.Player;
+		const serialize = gameFunction('CraftingSerialize');
+		if (!p || !Array.isArray(p.Crafting) || !serialize || !working('Restore crafts')) {
+			return null;
+		}
+		try {
+			/** @type {{ slot: number, craft: string }[]} */
+			const out = [];
+			p.Crafting.forEach((/** @type {any} */ c, /** @type {number} */ slot) => {
+				const craft = isOurCraft(c) ? serialize(c) : '';
+				if (craft) {
+					out.push({ slot, craft });
+				}
+			});
+			return out;
+		} catch (e) {
+			// (the copy then stays as it was: switched off, never emptied)
+			problem('Restore crafts', e);
+			return null;
 		}
 	}
 	/** Whether this login's restore check has run: before it, the outfit may be missing pieces, so no copy is taken. */
@@ -987,7 +1039,9 @@
 			Color: i.Color,
 			Property: i.Property ? JSON.parse(JSON.stringify(i.Property)) : undefined,
 		}));
-		const text = JSON.stringify({ v: 1, worn });
+		const now = currentCrafts();
+		const crafts = now ? [...now, ...missingCrafts.filter((m) => !now.some((c) => c.craft === m.craft))] : saved().crafts;
+		const text = JSON.stringify({ v: 1, worn, crafts });
 		if (p.ExtensionSettings[ADDON_ID] === text || typeof w.ServerPlayerExtensionSettingsSync !== 'function') {
 			return;
 		}
@@ -1028,6 +1082,72 @@
 		}
 		return back;
 	}
+	/**
+	 * Puts saved SCE crafts back into your crafts: into their own slot when it is empty, else the first empty one.
+	 * Returns their names.
+	 * @param {{ slot: number, craft: string }[]} list
+	 * @returns {string[]}
+	 */
+	function restoreCrafts(list) {
+		const p = w.Player;
+		const deserialize = gameFunction('CraftingDeserialize');
+		const validate = gameFunction('CraftingValidate');
+		const save = gameFunction('CraftingSaveServer');
+		const now = currentCrafts();
+		if (!list.length || !now || !deserialize || !validate || !save) {
+			return [];
+		}
+		/** The game's CraftingStatusType.CRITICAL_ERROR: a craft it would throw away. */
+		const CRITICAL = 0;
+		const back = [];
+		for (const s of list) {
+			if (now.some((c) => c.craft === s.craft)) {
+				continue;
+			}
+			const craft = deserialize(s.craft, { C: p });
+			// (an item this version doesn't have, or a craft the game rejects: kept in the copy, never forced in)
+			if (!isOurCraft(craft) || validate(craft, undefined, false, true) === CRITICAL) {
+				continue;
+			}
+			let slot = p.Crafting[s.slot] ? p.Crafting.findIndex((/** @type {any} */ c) => !c) : s.slot;
+			if (slot < 0) {
+				slot = p.Crafting.length;
+			}
+			if (slot >= 200) {
+				continue;
+			}
+			while (p.Crafting.length < slot) {
+				p.Crafting.push(null);
+			}
+			p.Crafting[slot] = craft;
+			now.push({ slot, craft: s.craft });
+			back.push(craft.Name || pieces.get(craft.Item).description);
+		}
+		missingCrafts = missingCrafts.filter((m) => !now.some((c) => c.craft === m.craft));
+		if (back.length) {
+			save();
+		}
+		return back;
+	}
+	/** SCE crafts in the copy that you don't have now. */
+	function droppedCrafts() {
+		const now = currentCrafts();
+		return now ? saved().crafts.filter((s) => !now.some((c) => c.craft === s.craft)) : [];
+	}
+	/** The settings button: everything missing, clothes and crafts. Returns their names. */
+	function putBack() {
+		const back = restoreOutfit();
+		/** @type {string[]} */
+		let crafts = [];
+		try {
+			const list = droppedCrafts();
+			crafts = restoreCrafts([...list, ...missingCrafts.filter((m) => !list.some((s) => s.craft === m.craft))]);
+		} catch (e) {
+			problem('Restore crafts', e);
+		}
+		saveOutfit();
+		return [...back, ...crafts];
+	}
 	/** Once per login, when SCE's clothes are in and your outfit has loaded: puts back what the game dropped. */
 	function checkRestore() {
 		const p = w.Player;
@@ -1051,9 +1171,34 @@
 			if (back.length) {
 				toast(ADDON_NAME, `Put back what the game had dropped: ${back.join(', ')}.`);
 			}
+			checkCrafts();
 			saveOutfit();
 		} catch (e) {
 			problem('Restore', e);
+		}
+	}
+	/** At login: SCE crafts the game dropped go back by themselves, or wait in the copy while SCE asks. */
+	function checkCrafts() {
+		if (!working('Restore crafts')) {
+			return;
+		}
+		try {
+			const dropped = droppedCrafts();
+			if (!dropped.length) {
+				return;
+			}
+			if (settings.restoreCrafts) {
+				const back = restoreCrafts(dropped);
+				if (back.length) {
+					toast(ADDON_NAME, `Put back the crafts the game had dropped: ${back.join(', ')}.`);
+				}
+				return;
+			}
+			missingCrafts = dropped;
+			const count = dropped.length === 1 ? '1 SCE craft' : `${dropped.length} SCE crafts`;
+			toast(ADDON_NAME, `The game dropped ${count}. SCE kept a copy: put it back in Preferences > Extensions > ${ADDON_NAME}.`, 20000);
+		} catch (e) {
+			problem('Restore crafts', e);
 		}
 	}
 	function hookRestore() {
@@ -1062,6 +1207,14 @@
 			saveOutfit();
 			return result;
 		});
+		// A change to your crafts updates the copy of SCE's.
+		if (gameFunction('CraftingSaveServer')) {
+			hookGame('CraftingSaveServer', 0, 'Restore crafts', (args, next) => {
+				const result = next(args);
+				saveOutfit();
+				return result;
+			});
+		}
 		// In a chat room your outfit is saved through the room update instead.
 		if (gameFunction('ChatRoomCharacterUpdate')) {
 			hookGame('ChatRoomCharacterUpdate', 0, 'Restore', (args, next) => {
@@ -1223,6 +1376,7 @@
 		problems,
 		settings,
 		outfits: () => outfitChoices,
+		putBack: () => (working('Restore') ? putBack() : []),
 		kit: { hookGame, problem, working, gameFunction, settings, ICON, ADDON_NAME },
 	};
 	start();
