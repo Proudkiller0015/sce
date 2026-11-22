@@ -1,6 +1,6 @@
 // Slime Clothing Extension (SCE): a Bondage Club clothing add-on, Echo-style. It adds its own clothes to the game's
 // clothing groups, with their pictures and texts, and (when clothes.json lists outfits) a row at the end of the wardrobe
-// that puts on an outfit in one go. The clothes are listed in clothes/clothes.json, built by tools/build-clothes.js.
+// that puts on an outfit in one go. The clothes are listed in clothes/clothes.json.
 // Pictures are fetched with the add-on's VERSION: raise it whenever pictures change, or players keep cached old ones.
 //
 // Every game hook goes through hookGame(): a feature that meets a game it doesn't expect is switched off for the
