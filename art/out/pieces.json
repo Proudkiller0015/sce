@@ -139,7 +139,13 @@
 						"s"
 					],
 					"ParentGroup": "BodyUpper",
-					"Color": "#D4AF37"
+					"Color": "#D4AF37",
+					"AllowTypes": {
+						"o": [
+							0
+						]
+					},
+					"ColorGroup": "Obi"
 				},
 				{
 					"Name": "Cord",
@@ -153,10 +159,14 @@
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
 					"AllowTypes": {
+						"o": [
+							0
+						],
 						"c": [
 							0
 						]
-					}
+					},
+					"ColorGroup": "Obi"
 				}
 			],
 			"Modules": [
@@ -244,6 +254,20 @@
 							"Text": "No obi cord"
 						}
 					]
+				},
+				{
+					"Name": "Obi",
+					"Key": "o",
+					"Options": [
+						{
+							"Name": "ObiOn",
+							"Text": "With obi"
+						},
+						{
+							"Name": "ObiOff",
+							"Text": "No obi"
+						}
+					]
 				}
 			],
 			"ColorHistory": {
@@ -316,7 +340,8 @@
 						"o": [
 							0
 						]
-					}
+					},
+					"ColorGroup": "Obi"
 				},
 				{
 					"Name": "Cord",
@@ -333,7 +358,8 @@
 						"c": [
 							0
 						]
-					}
+					},
+					"ColorGroup": "Obi"
 				}
 			],
 			"Modules": [
