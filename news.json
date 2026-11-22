@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.5.2",
+		"title": "Slime Clothing Extension v1.5.2",
+		"text": "👘 Kimono fix: with other hands (another add-on's, or moved), no more skin showing through the kimono around the hands, sleeveless included."
+	},
+	{
 		"id": "1.5.1",
 		"title": "Slime Clothing Extension v1.5.1",
 		"text": "🧥 Layering fix: jackets, coats and necklaces worn over the Miko Top, Hakama and school uniforms now cover them in every pose, as they do standing."
