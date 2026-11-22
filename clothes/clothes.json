@@ -483,7 +483,7 @@
 			"def": {
 				"Name": "SlimeHakama",
 				"ParentGroup": "",
-				"Priority": 31,
+				"Priority": 26,
 				"Value": 0,
 				"Hide": [],
 				"DefaultColor": [
@@ -492,8 +492,57 @@
 				],
 				"Layer": [
 					{
+						"Name": "HakamaUnder",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 26,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Hakama",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"TapedHands": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "BowUnder",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 26,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Bow",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"TapedHands": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
 						"Name": "Hakama",
-						"Left": 0,
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
 						"Top": 0,
 						"Priority": 31,
 						"ParentGroup": "BodyUpper",
@@ -504,7 +553,10 @@
 					},
 					{
 						"Name": "Bow",
-						"Left": 0,
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
 						"Top": 0,
 						"Priority": 31,
 						"ParentGroup": "BodyUpper",
@@ -5085,17 +5137,29 @@
 		"img/ClothLower/OverTheHead/SlimeHakama_XLarge_Bow.png",
 		"img/ClothLower/OverTheHead/SlimeHakama_XLarge_Hakama.png",
 		"img/ClothLower/SlimeHakama_FlatMedium_Bow.png",
+		"img/ClothLower/SlimeHakama_FlatMedium_BowUnder.png",
 		"img/ClothLower/SlimeHakama_FlatMedium_Hakama.png",
+		"img/ClothLower/SlimeHakama_FlatMedium_HakamaUnder.png",
 		"img/ClothLower/SlimeHakama_FlatSmall_Bow.png",
+		"img/ClothLower/SlimeHakama_FlatSmall_BowUnder.png",
 		"img/ClothLower/SlimeHakama_FlatSmall_Hakama.png",
+		"img/ClothLower/SlimeHakama_FlatSmall_HakamaUnder.png",
 		"img/ClothLower/SlimeHakama_Large_Bow.png",
+		"img/ClothLower/SlimeHakama_Large_BowUnder.png",
 		"img/ClothLower/SlimeHakama_Large_Hakama.png",
+		"img/ClothLower/SlimeHakama_Large_HakamaUnder.png",
 		"img/ClothLower/SlimeHakama_Normal_Bow.png",
+		"img/ClothLower/SlimeHakama_Normal_BowUnder.png",
 		"img/ClothLower/SlimeHakama_Normal_Hakama.png",
+		"img/ClothLower/SlimeHakama_Normal_HakamaUnder.png",
 		"img/ClothLower/SlimeHakama_Small_Bow.png",
+		"img/ClothLower/SlimeHakama_Small_BowUnder.png",
 		"img/ClothLower/SlimeHakama_Small_Hakama.png",
+		"img/ClothLower/SlimeHakama_Small_HakamaUnder.png",
 		"img/ClothLower/SlimeHakama_XLarge_Bow.png",
+		"img/ClothLower/SlimeHakama_XLarge_BowUnder.png",
 		"img/ClothLower/SlimeHakama_XLarge_Hakama.png",
+		"img/ClothLower/SlimeHakama_XLarge_HakamaUnder.png",
 		"img/ClothLower/TapedHands/SlimeHakama_FlatMedium_Bow.png",
 		"img/ClothLower/TapedHands/SlimeHakama_FlatMedium_Hakama.png",
 		"img/ClothLower/TapedHands/SlimeHakama_FlatSmall_Bow.png",
