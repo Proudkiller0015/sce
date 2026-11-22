@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.6.7",
+		"title": "Slime Clothing Extension v0.6.7",
+		"text": "Kimono with long sleeves: the body now has the same pattern as the sleeveless kimono; the sleeves keep theirs."
+	},
+	{
 		"id": "0.6.6",
 		"title": "Slime Clothing Extension v0.6.6",
 		"text": "Kimono and Furisode: the obi and its cord share one colour row (use its arrows to pick the obi or the cord), so the Kimono's colours fit on one page. The Kimono's patterns are back to how they were before 0.6.4."
