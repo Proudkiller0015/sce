@@ -281,6 +281,7 @@
 				"ClothSlimeKimonoOptionp2": "Seigaiha waves",
 				"ClothSlimeKimonoOptionp3": "Asanoha",
 				"ClothSlimeKimonoOptionp4": "Akatsuki clouds",
+				"ClothSlimeKimonoOptionp5": "Dragon",
 				"ClothSlimeKimonoModuleCollar": "Collar",
 				"ClothSlimeKimonoSelectCollar": "Select collar",
 				"ClothSlimeKimonoOptione0": "With collar",
@@ -288,8 +289,7 @@
 				"ClothSlimeKimonoModuleObi": "Obi",
 				"ClothSlimeKimonoSelectObi": "Select obi",
 				"ClothSlimeKimonoOptionc0": "With obi",
-				"ClothSlimeKimonoOptionc1": "No obi",
-				"ClothSlimeKimonoOptionp5": "Dragon"
+				"ClothSlimeKimonoOptionc1": "No obi"
 			},
 			"layerNames": {
 				"ClothSlimeKimonoKimono": "Kimono",

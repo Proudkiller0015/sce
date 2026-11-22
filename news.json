@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.9.4",
+		"title": "Slime Clothing Extension v0.9.4",
+		"text": "🐉 New Kimono pattern: Dragon. It winds down the skirt in every size, sleeve choice and pose; pick it in the Kimono's Pattern options."
+	},
+	{
 		"id": "0.9.3",
 		"title": "Slime Clothing Extension v0.9.3",
 		"text": "Fixes: the SCE badge shows on item tiles again; Esc closes SCE's settings page; someone without SCE can now put a top on you in place of the kimono; switching the activities off no longer changes how others' activities feel; small clean-ups."
