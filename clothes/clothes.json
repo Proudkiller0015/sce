@@ -591,6 +591,60 @@
 				"TapedHands",
 				"Yoked"
 			]
+		},
+		{
+			"name": "SlimeGohei",
+			"group": "ItemHandheld",
+			"description": "Gohei",
+			"def": {
+				"Name": "SlimeGohei",
+				"ParentGroup": "",
+				"Priority": 46,
+				"Value": 0,
+				"Random": false,
+				"Attribute": [
+					"HandheldItem"
+				],
+				"AllowActivity": [
+					"TickleItem"
+				],
+				"DefaultColor": [
+					"#E9B27C",
+					"#FFFFFF"
+				],
+				"Layer": [
+					{
+						"Name": "Stick",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#E9B27C"
+						]
+					},
+					{
+						"Name": "Paper",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#FFFFFF"
+						]
+					}
+				]
+			},
+			"extended": null,
+			"texts": {},
+			"layerNames": {
+				"ItemHandheldSlimeGoheiStick": "Stick",
+				"ItemHandheldSlimeGoheiPaper": "Paper"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [],
+			"poses": []
 		}
 	],
 	"images": [
@@ -5345,7 +5399,9 @@
 		"img/ClothOuter/Yoked/SlimeMikoTop_Small_Top.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Cords.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Sleeves.png",
-		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Top.png"
+		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Top.png",
+		"img/ItemHandheld/SlimeGohei_Paper.png",
+		"img/ItemHandheld/SlimeGohei_Stick.png"
 	],
 	"outfits": {}
 }

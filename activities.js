@@ -26,7 +26,8 @@
 	 *   self?: Lines & { groups: string[] }, other?: Lines & { groups: string[] }, penis?: Lines,
 	 *   face?: [string, string, number][], react?: [string, string, number][],
 	 * }} Def
-	 * `image`: a game activity icon's name (Icons/Activity/<image>.png), or a path to another game picture.
+	 * `image`: a game activity icon's name (Icons/Activity/<image>.png), a path to another game picture, or
+	 * `preview:<name>` for an SCE item's own picture.
 	 * `face`: the doer's face for a while (group, expression, seconds). `react`: the target's face, when their game has
 	 * SCE and arousal on.
 	 */
@@ -138,6 +139,29 @@
 		{
 			name: 'SCE_Raspberry', image: 'Kiss', prereq: ['UseTongue'], react: [['Mouth', 'Laughing', 5]],
 			other: { groups: ['ItemPelvis'], label: 'Belly Raspberry', text: 'SourceCharacter blows a loud raspberry on DestinationCharacter belly.' },
+		},
+
+		// ---- With the Gohei in hand (SCE's held item, ItemHandheld SlimeGohei)
+		{
+			name: 'SCE_GoheiPurify', image: 'preview:SlimeGohei', prereq: ['UseHands', 'SCE_HoldsGohei'], react: [['Eyes', 'Closed', 5]],
+			self: { groups: ['ItemHead'], label: 'Purify', text: 'SourceCharacter sweeps PronounPossessive gohei left and right over PronounPossessive own head.' },
+			other: { groups: ['ItemHead'], label: 'Purify', text: 'SourceCharacter sweeps PronounPossessive gohei left and right over DestinationCharacter head, purifying TargetPronounObject.' },
+		},
+		{
+			name: 'SCE_GoheiBonk', image: 'preview:SlimeGohei', prereq: ['UseHands', 'SCE_HoldsGohei'], react: [['Eyes', 'Closed', 3]],
+			other: { groups: ['ItemHead'], label: 'Gohei Bonk', text: 'SourceCharacter bonks DestinationCharacter head with PronounPossessive gohei.' },
+		},
+		{
+			name: 'SCE_GoheiExorcise', image: 'preview:SlimeGohei', prereq: ['UseHands', 'SCE_HoldsGohei'], react: [['Eyes', 'Dizzy', 5]],
+			other: { groups: ['ItemTorso'], label: 'Exorcise', text: 'SourceCharacter shakes PronounPossessive gohei at TargetCharacter, chanting to drive out the evil spirits.' },
+		},
+		{
+			name: 'SCE_GoheiBless', image: 'preview:SlimeGohei', prereq: ['UseHands', 'SCE_HoldsGohei'], react: [['Blush', 'Low', 8]],
+			other: { groups: ['ItemArms'], label: 'Bless', text: 'SourceCharacter touches the paper streamers of PronounPossessive gohei to DestinationCharacter shoulder and blesses TargetPronounObject.' },
+		},
+		{
+			name: 'SCE_GoheiPray', image: 'preview:SlimeGohei', prereq: ['UseHands', 'SCE_HoldsGohei'], face: [['Eyes', 'Closed', 8]],
+			self: { groups: ['ItemHands'], label: 'Pray', text: 'SourceCharacter raises PronounPossessive gohei and offers a quiet prayer.' },
 		},
 
 		// ---- Lewd
@@ -278,6 +302,10 @@
 				const item = cloth(acted, 'Cloth');
 				return !!item && /Kimono|Yukata|Furisode/i.test(item.Asset.Name);
 			}
+			case 'SCE_HoldsGohei': {
+				const item = cloth(acting, 'ItemHandheld');
+				return !!item && item.Asset.Name === 'SlimeGohei';
+			}
 			case 'SCE_TargetClothed':
 				return !!(cloth(acted, 'Cloth') || cloth(acted, 'ClothLower'));
 			default:
@@ -336,7 +364,9 @@
 				return next(args);
 			}
 			const options = { ...(args[4] || {}) };
-			options.image ??= d.image.includes('/') ? `./${d.image}` : `./Icons/Activity/${d.image}.png`;
+			// 'preview:<item>': that SCE item's own picture (a held item's activities show the item)
+			options.image ??= d.image.startsWith('preview:') ? kit.preview(d.image.slice(8))
+				: d.image.includes('/') ? `./${d.image}` : `./Icons/Activity/${d.image}.png`;
 			options.icons = [...(options.icons || []), { name: 'SCE', iconSrc: ICON, tooltipText: ADDON_NAME }];
 			return next([args[0], args[1], args[2], args[3], options, ...args.slice(5)]);
 		});

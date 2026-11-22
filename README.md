@@ -25,7 +25,8 @@ Both run the same SCE and always load its newest version, so there's nothing to 
   - **Colours:** the kimono, sleeves, lining, pattern, pattern outline, collar, sleeve band, obi and obi cord each have their own.
   - Fits every chest and hip size, in every pose.
 - **⛩ Miko Top** (Clothes, or Outer Clothes) and **Hakama** (Lower Clothes): a shrine maiden outfit. The top's colour and its cords, the hakama and its bow each have their own colour. Fits every chest and hip size, in every pose.
-- **🎭 Activities:** 37 new actions in the activity menu (faces, sweet ones, lewd ones), each with the SCE badge; players without SCE still read them in chat. Switch them off in SCE's settings.
+- **⛩ Gohei** (Held items): a shrine maiden's wand, paper and stick each their own colour. Hold it for its own activities.
+- **🎭 Activities:** 42 new actions in the activity menu (faces, sweet ones, lewd ones), each with the SCE badge; players without SCE still read them in chat. Switch them off in SCE's settings.
 - **♻ Restore:** if the game loads your outfit before SCE (a slow connection, or the bookmark clicked late), it drops SCE clothes it doesn't know yet. SCE keeps a copy of what you wear with your account and puts it back into empty slots once it's loaded, never over anything else. Crafts of SCE items the same way: the game drops them and would erase them, SCE keeps a copy and puts them back (or asks first, if you switch that off).
 - **⚙ Settings > Extensions > Slime Clothing Extension:** the activities on/off, putting back crafts by itself or asking, the update-ready notice, the update notes, **Put my SCE clothes and crafts back**, and the **Clothing list** and **Activity list** (everything SCE adds).
 - **🔔 Updates:** a notice tells you when a newer SCE is ready (reload the game to get it), and what's new shows once after an update.
