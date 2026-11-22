@@ -164,6 +164,40 @@
 			self: { groups: ['ItemHands'], label: 'Pray', text: 'SourceCharacter raises PronounPossessive gohei and offers a quiet prayer.' },
 		},
 
+		// ---- With the Lightsaber in hand (ItemHandheld SlimeLightsaber); the Force needs the other hand free
+		{
+			name: 'SCE_SaberIgnite', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber'],
+			self: { groups: ['ItemHands'], label: 'Ignite', text: 'SourceCharacter ignites PronounPossessive lightsaber with a snap-hiss and gives it a slow twirl.' },
+		},
+		{
+			name: 'SCE_BladeClash', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber', 'SCE_TargetHoldsLightsaber'], react: [['Eyebrows', 'Angry', 6]],
+			other: { groups: ['ItemHands'], label: 'Blade Clash', text: 'SourceCharacter swings PronounPossessive lightsaber into DestinationCharacter blade; the two beams lock with a crackle of sparks.' },
+		},
+		{
+			name: 'SCE_SaberThreat', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber'], react: [['Eyes', 'Scared', 6]],
+			other: { groups: ['ItemNeck'], label: 'Blade to Throat', text: 'SourceCharacter holds the humming blade of PronounPossessive lightsaber a hair from DestinationCharacter throat.' },
+		},
+		{
+			name: 'SCE_SaberDisarm', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber', 'SCE_TargetHoldsItem'], react: [['Eyes', 'Surprised', 5]],
+			other: { groups: ['ItemHands'], label: 'Disarm', text: 'SourceCharacter flicks PronounPossessive lightsaber and knocks the weapon out of DestinationCharacter hand.' },
+		},
+		{
+			name: 'SCE_ForcePull', image: 'Pull', prereq: ['UseHands', 'SCE_HoldsLightsaber'], react: [['Eyes', 'Surprised', 5]],
+			other: { groups: ['ItemTorso'], label: 'Force Pull', text: 'SourceCharacter reaches out with the Force and drags TargetCharacter across the floor toward PronounObject.' },
+		},
+		{
+			name: 'SCE_ForcePush', image: 'Icons/Expressions/Emoticon/RaisedHand.png', prereq: ['UseHands', 'SCE_HoldsLightsaber'], react: [['Eyes', 'Dizzy', 5]],
+			other: { groups: ['ItemTorso'], label: 'Force Push', text: 'SourceCharacter thrusts out PronounPossessive palm and a wave of the Force shoves TargetCharacter backwards.' },
+		},
+		{
+			name: 'SCE_ForceChoke', image: 'Choke', prereq: ['UseHands', 'SCE_HoldsLightsaber'], max: 30, react: [['Eyes', 'Scared', 8], ['Blush', 'Medium', 8]],
+			other: { groups: ['ItemNeck'], label: 'Force Choke', text: 'SourceCharacter raises PronounPossessive hand and slowly closes PronounPossessive fingers; an invisible grip tightens around DestinationCharacter throat.' },
+		},
+		{
+			name: 'SCE_ForceLift', image: 'Icons/Expressions/Eyes/Surprised.png', prereq: ['UseHands', 'SCE_HoldsLightsaber'], react: [['Eyes', 'Surprised', 6]],
+			other: { groups: ['ItemBoots'], label: 'Force Lift', text: 'SourceCharacter lifts TargetCharacter off the ground with the Force and leaves TargetPronounObject dangling in the air.' },
+		},
+
 		// ---- Lewd
 		{
 			name: 'SCE_Smother', image: 'Cuddle', prereq: ['SCE_HasBreasts'], max: 20, react: [['Blush', 'High', 10]],
@@ -306,6 +340,16 @@
 				const item = cloth(acting, 'ItemHandheld');
 				return !!item && item.Asset.Name === 'SlimeGohei';
 			}
+			case 'SCE_HoldsLightsaber': {
+				const item = cloth(acting, 'ItemHandheld');
+				return !!item && item.Asset.Name === 'SlimeLightsaber';
+			}
+			case 'SCE_TargetHoldsLightsaber': {
+				const item = cloth(acted, 'ItemHandheld');
+				return !!item && item.Asset.Name === 'SlimeLightsaber';
+			}
+			case 'SCE_TargetHoldsItem':
+				return !!cloth(acted, 'ItemHandheld');
 			case 'SCE_TargetClothed':
 				return !!(cloth(acted, 'Cloth') || cloth(acted, 'ClothLower'));
 			default:

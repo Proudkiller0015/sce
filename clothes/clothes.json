@@ -848,6 +848,83 @@
 				"OverTheHead",
 				"Yoked"
 			]
+		},
+		{
+			"name": "SlimeLightsaber",
+			"group": "ItemHandheld",
+			"description": "Lightsaber",
+			"def": {
+				"Name": "SlimeLightsaber",
+				"ParentGroup": "",
+				"Priority": 46,
+				"Value": 0,
+				"Random": false,
+				"Attribute": [
+					"HandheldItem"
+				],
+				"DefaultColor": [
+					"#2E8BFF",
+					"#C9CBD1",
+					"#2B2B2E"
+				],
+				"Layer": [
+					{
+						"Name": "Glow",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#2E8BFF"
+						]
+					},
+					{
+						"Name": "Hilt",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#C9CBD1"
+						]
+					},
+					{
+						"Name": "Grip",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#2B2B2E"
+						]
+					},
+					{
+						"Name": "Button",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": false
+					},
+					{
+						"Name": "Core",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": false
+					}
+				]
+			},
+			"extended": null,
+			"texts": {},
+			"layerNames": {
+				"ItemHandheldSlimeLightsaberGlow": "Blade",
+				"ItemHandheldSlimeLightsaberHilt": "Hilt",
+				"ItemHandheldSlimeLightsaberGrip": "Grip"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [],
+			"poses": []
 		}
 	],
 	"images": [
@@ -5562,7 +5639,12 @@
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Sleeves.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Top.png",
 		"img/ItemHandheld/SlimeGohei_Paper.png",
-		"img/ItemHandheld/SlimeGohei_Stick.png"
+		"img/ItemHandheld/SlimeGohei_Stick.png",
+		"img/ItemHandheld/SlimeLightsaber_Button.png",
+		"img/ItemHandheld/SlimeLightsaber_Core.png",
+		"img/ItemHandheld/SlimeLightsaber_Glow.png",
+		"img/ItemHandheld/SlimeLightsaber_Grip.png",
+		"img/ItemHandheld/SlimeLightsaber_Hilt.png"
 	],
 	"outfits": {}
 }
