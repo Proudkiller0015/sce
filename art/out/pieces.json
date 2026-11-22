@@ -179,6 +179,12 @@
 							"Hide": [
 								"ClothLower"
 							]
+						},
+						{
+							"Name": "Short",
+							"Hide": [
+								"ClothLower"
+							]
 						}
 					]
 				},
