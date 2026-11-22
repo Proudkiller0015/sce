@@ -26,6 +26,7 @@ Both run the same SCE and always load its newest version, so there's nothing to 
   - Fits every chest and hip size, in every pose.
 - **⛩ Miko Top** (Clothes, or Outer Clothes) and **Hakama** (Lower Clothes): a shrine maiden outfit. The top's colour and its cords, the hakama and its bow each have their own colour. Fits every chest and hip size, in every pose.
 - **⛩ Gohei** (Held items): a shrine maiden's wand, paper and stick each their own colour. Hold it for its own activities.
+- **🎒 School uniforms:** **Sailor Top**, **School Blazer** and **School Cardigan** (Clothes) and a **Pleated Skirt** (Lower Clothes) that goes with all three. Every part its own colour; every chest and hip size, every pose.
 - **⚔ Lightsaber** (Held items): blade, hilt and grip each their own colour. Hold it for Force powers and blade activities.
 - **🎭 Activities:** 50 new actions in the activity menu (faces, sweet ones, lewd ones), each with the SCE badge; players without SCE still read them in chat. Switch them off in SCE's settings.
 - **♻ Restore:** if the game loads your outfit before SCE (a slow connection, or the bookmark clicked late), it drops SCE clothes it doesn't know yet. SCE keeps a copy of what you wear with your account and puts it back into empty slots once it's loaded, never over anything else. Crafts of SCE items the same way: the game drops them and would erase them, SCE keeps a copy and puts them back (or asks first, if you switch that off).
