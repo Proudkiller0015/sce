@@ -174,7 +174,7 @@
 							"#D4AF37"
 						],
 						"AllowTypes": {
-							"o": [
+							"c": [
 								0
 							]
 						}
@@ -194,9 +194,6 @@
 							"#B8324A"
 						],
 						"AllowTypes": {
-							"o": [
-								0
-							],
 							"c": [
 								0
 							]
@@ -253,17 +250,8 @@
 						"DrawImages": false
 					},
 					{
-						"Name": "Cord",
-						"Key": "c",
-						"Options": [
-							{},
-							{}
-						],
-						"DrawImages": false
-					},
-					{
 						"Name": "Obi",
-						"Key": "o",
+						"Key": "c",
 						"Options": [
 							{},
 							{}
@@ -293,14 +281,10 @@
 				"ClothSlimeKimonoSelectCollar": "Select collar",
 				"ClothSlimeKimonoOptione0": "With collar",
 				"ClothSlimeKimonoOptione1": "No collar",
-				"ClothSlimeKimonoModuleCord": "Obi cord",
-				"ClothSlimeKimonoSelectCord": "Select obi cord",
-				"ClothSlimeKimonoOptionc0": "With obi cord",
-				"ClothSlimeKimonoOptionc1": "No obi cord",
 				"ClothSlimeKimonoModuleObi": "Obi",
 				"ClothSlimeKimonoSelectObi": "Select obi",
-				"ClothSlimeKimonoOptiono0": "With obi",
-				"ClothSlimeKimonoOptiono1": "No obi"
+				"ClothSlimeKimonoOptionc0": "With obi",
+				"ClothSlimeKimonoOptionc1": "No obi"
 			},
 			"layerNames": {
 				"ClothSlimeKimonoKimono": "Kimono",

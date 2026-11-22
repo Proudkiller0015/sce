@@ -141,7 +141,7 @@
 					"ParentGroup": "BodyUpper",
 					"Color": "#D4AF37",
 					"AllowTypes": {
-						"o": [
+						"c": [
 							0
 						]
 					},
@@ -159,9 +159,6 @@
 					"ParentGroup": "BodyUpper",
 					"Color": "#B8324A",
 					"AllowTypes": {
-						"o": [
-							0
-						],
 						"c": [
 							0
 						]
@@ -241,23 +238,9 @@
 					]
 				},
 				{
-					"Name": "Cord",
-					"Key": "c",
-					"Text": "Obi cord",
-					"Options": [
-						{
-							"Name": "CordOn",
-							"Text": "With obi cord"
-						},
-						{
-							"Name": "CordOff",
-							"Text": "No obi cord"
-						}
-					]
-				},
-				{
 					"Name": "Obi",
-					"Key": "o",
+					"Key": "c",
+					"Text": "Obi",
 					"Options": [
 						{
 							"Name": "ObiOn",
