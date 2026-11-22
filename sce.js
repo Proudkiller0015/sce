@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.9.4';
+	const VERSION = '1.0.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -778,8 +778,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ badge: boolean, roomBadge: boolean, activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean }} */
-	const settings = { badge: true, roomBadge: true, activities: true, restoreCrafts: true, updateReady: true, updateNotes: true };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -837,7 +837,7 @@
 	function hookBadge() {
 		hookGame('DialogGetAssetIcons', 0, 'Badge', (args, next) => {
 			const icons = next(args);
-			return settings.badge && isOurs(args[0]) && Array.isArray(icons) ? [...icons, BADGE] : icons;
+			return isOurs(args[0]) && Array.isArray(icons) ? [...icons, BADGE] : icons;
 		});
 		hookGame('InterfaceTextGet', 0, 'Badge', (args, next) =>
 			args[0] === `PreviewIcon${BADGE}` ? ADDON_NAME : next(args),
@@ -924,8 +924,6 @@
 		const ROW = 90;
 		/** @type {[string, keyof typeof settings][]} */
 		const boxes = [
-			['Show the SCE badge on our clothes and activities', 'badge'],
-			['Show the SCE mark on SCE users in chat rooms', 'roomBadge'],
 			['Add the SCE activities to the activity menu', 'activities'],
 			['Put dropped SCE crafts back by themselves (off: SCE asks first)', 'restoreCrafts'],
 			['Tell me when an update is ready', 'updateReady'],
@@ -933,8 +931,14 @@
 		];
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
 		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 640, 64];
+		/** @type {[number, number, number, number]} */
+		const CLOTHES_LIST = [LEFT, RESTORE[1] + 100, 300, 64];
+		/** @type {[number, number, number, number]} */
+		const ACTIVITY_LIST = [LEFT + 340, RESTORE[1] + 100, 300, 64];
 		/** What the last press of the restore button did. */
 		let restoreSaid = '';
+		/** @type {'main' | 'clothes' | 'activities'} The page shown: the settings, or one of the two lists. */
+		let page = 'main';
 		const mouseIn = (/** @type {number[]} */ r) => typeof w.MouseIn === 'function' && w.MouseIn(r[0], r[1], r[2], r[3]);
 		try {
 			register({
@@ -943,9 +947,17 @@
 				Image: ICON,
 				load: () => {
 					restoreSaid = '';
+					page = 'main';
 				},
-				// (the game calls these when the page closes, or another add-on opens its own)
-				exit: () => true,
+				// (the game calls these when the page closes, or another add-on opens its own; from a list, Esc goes
+				// back to the settings)
+				exit: () => {
+					if (page !== 'main') {
+						page = 'main';
+						return false;
+					}
+					return true;
+				},
 				unload: () => {},
 				run: () => {
 					// The game's canvas is a script-level `let`, not a window property.
@@ -953,6 +965,12 @@
 					const align = ctx.textAlign;
 					try {
 						ctx.textAlign = 'left';
+						if (page !== 'main') {
+							drawList(page);
+							ctx.textAlign = 'center';
+							w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
+							return;
+						}
 						w.DrawText(`- ${ADDON_NAME} - v${VERSION}`, LEFT, 125, 'Black', 'Gray');
 						boxes.forEach(([label, key], i) => w.DrawCheckbox(LEFT, TOP + i * ROW, 64, 64, label, settings[key]));
 						const off = [...problems.keys()];
@@ -968,6 +986,8 @@
 						}
 						ctx.textAlign = 'center';
 						w.DrawButton(...RESTORE, 'Put my SCE clothes and crafts back', 'White');
+						w.DrawButton(...CLOTHES_LIST, 'Clothing list', 'White');
+						w.DrawButton(...ACTIVITY_LIST, 'Activity list', 'White');
 						w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
 					} catch (e) {
 						problem('Settings', e);
@@ -978,9 +998,22 @@
 				click: () => {
 					try {
 						if (mouseIn(EXIT)) {
-							if (typeof w.PreferenceSubscreenExtensionsExit === 'function') {
+							if (page !== 'main') {
+								page = 'main';
+							} else if (typeof w.PreferenceSubscreenExtensionsExit === 'function') {
 								w.PreferenceSubscreenExtensionsExit();
 							}
+							return;
+						}
+						if (page !== 'main') {
+							return;
+						}
+						if (mouseIn(CLOTHES_LIST)) {
+							page = 'clothes';
+							return;
+						}
+						if (mouseIn(ACTIVITY_LIST)) {
+							page = 'activities';
 							return;
 						}
 						if (mouseIn(RESTORE)) {
@@ -1002,6 +1035,49 @@
 		} catch (e) {
 			problem('Settings', e);
 		}
+	}
+
+	/**
+	 * One of the settings' two lists, drawn left-aligned: every SCE piece with its options, or every SCE activity.
+	 * @param {'clothes' | 'activities'} which
+	 */
+	function drawList(which) {
+		const LEFT = 300;
+		const WIDTH = 1400;
+		if (which === 'clothes') {
+			w.DrawText(`- ${ADDON_NAME}: clothing -`, LEFT, 125, 'Black', 'Gray');
+			let y = 220;
+			for (const piece of pieces.values()) {
+				const group = w.AssetGroupGet('Female3DCG', piece.group);
+				w.DrawTextFit(`${piece.description} (${(group && group.Description) || piece.group})`, LEFT, y, WIDTH, 'Black', 'Gray');
+				y += 70;
+				const key = `${piece.group}${piece.name}`;
+				const modules = (piece.extended && Array.isArray(piece.extended.Modules) && piece.extended.Modules) || [];
+				for (const m of modules) {
+					const name = (piece.texts && piece.texts[`${key}Module${m.Name}`]) || m.Name;
+					const options = (m.Options || []).map(
+						(/** @type {any} */ _, /** @type {number} */ i) => (piece.texts && piece.texts[`${key}Option${m.Key}${i}`]) || `${m.Key}${i}`,
+					);
+					w.DrawTextFit(`${name}: ${options.join(', ')}`, LEFT + 60, y, WIDTH - 60, 'Black', 'Gray');
+					y += 60;
+				}
+				y += 30;
+			}
+			return;
+		}
+		/** @type {string[]} */
+		const names = Array.isArray(w.SCE && w.SCE.activityLabels) ? w.SCE.activityLabels : [];
+		w.DrawText(`- ${ADDON_NAME}: activities (${names.length}) -`, LEFT, 125, 'Black', 'Gray');
+		if (!names.length) {
+			w.DrawText('The activities are not loaded.', LEFT, 220, 'Black', 'Gray');
+			return;
+		}
+		const COLUMNS = 3;
+		const rows = Math.ceil(names.length / COLUMNS);
+		const rowHeight = Math.min(60, Math.floor(700 / rows));
+		names.forEach((name, i) => {
+			w.DrawTextFit(name, LEFT + Math.floor(i / rows) * (WIDTH / COLUMNS), 220 + (i % rows) * rowHeight, WIDTH / COLUMNS - 40, 'Black', 'Gray');
+		});
 	}
 
 	// ---- Restore: if the game loads your outfit before SCE has added its clothes (a slow connection, the bookmark),
@@ -1302,7 +1378,7 @@
 	/** Draws the mark above an SCE user, right of ER's, and the version while the mouse is on it. */
 	function drawRoomBadge(/** @type {any} */ C, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ zoom) {
 		try {
-			if (!settings.roomBadge || !C || typeof C.MemberNumber !== 'number' || !w.Player) {
+			if (!C || typeof C.MemberNumber !== 'number' || !w.Player) {
 				return;
 			}
 			if (typeof ChatRoomHideIconState === 'number' && ChatRoomHideIconState > 0) {

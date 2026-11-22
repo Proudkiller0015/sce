@@ -337,9 +337,7 @@
 			}
 			const options = { ...(args[4] || {}) };
 			options.image ??= d.image.includes('/') ? `./${d.image}` : `./Icons/Activity/${d.image}.png`;
-			if (settings.badge) {
-				options.icons = [...(options.icons || []), { name: 'SCE', iconSrc: ICON, tooltipText: ADDON_NAME }];
-			}
+			options.icons = [...(options.icons || []), { name: 'SCE', iconSrc: ICON, tooltipText: ADDON_NAME }];
 			return next([args[0], args[1], args[2], args[3], options, ...args.slice(5)]);
 		});
 		// The chat line travels with the message, for players whose game doesn't know it.
@@ -402,4 +400,6 @@
 		problem(FEATURE, e);
 	}
 	w.SCE.activities = DEFS.map((d) => d.name);
+	/** The names players see, for the settings' activity list. */
+	w.SCE.activityLabels = DEFS.map((d) => (d.other || d.self || { label: d.name }).label);
 })();
