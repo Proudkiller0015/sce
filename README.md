@@ -24,13 +24,15 @@ Both run the same SCE and always load its newest version, so there's nothing to 
   - **Collar** and **Obi cord:** on or off.
   - **Colours:** the kimono, sleeves, lining, pattern, pattern outline, collar, sleeve band, obi and obi cord each have their own.
   - Fits every chest and hip size. Standing for now; poses are being drawn.
+- **🎭 Activities:** 37 new actions in the activity menu (faces, sweet ones, lewd ones), each with the SCE badge; players without SCE still read them in chat. Switch them off in SCE's settings.
 - **♻ Restore:** if the game loads your outfit before SCE (a slow connection, or the bookmark clicked late), it drops SCE clothes it doesn't know yet. SCE keeps a copy of what you wear with your account and puts it back into empty slots once it's loaded, never over anything else.
-- **⚙ Settings > Extensions > Slime Clothing Extension:** the badge on/off, the update-ready notice, the update notes, and **Put my SCE clothes back**.
+- **⚙ Settings > Extensions > Slime Clothing Extension:** the badge on/off, the activities on/off, the update-ready notice, the update notes, and **Put my SCE clothes back**.
 - **🔔 Updates:** a notice tells you when a newer SCE is ready (reload the game to get it), and what's new shows once after an update.
 
 ## For developers
 
 - `sce.js` registers the clothes in `clothes/clothes.json` with the game (pictures, texts, option names, colour layer names), keeps them on when someone without SCE changes your outfit, and adds the wardrobe badge, the settings page and the update notices. Every game hook is guarded: a feature that meets a game it doesn't expect switches itself off for the session and the game carries on untouched.
+- `activities.js` adds the activities; `sce.js` loads it and lends it its guarded hooks.
 - `sce.user.js` is the loader: it adds the newest `sce.js` from GitHub Pages (jsDelivr as a backup) on every game load.
 - `tools/build-clothes.js` builds `clothes/` from `art/out/pieces.json` and the pictures in `art/out/<Group>/` (the kimono pictures are generated and not kept in the repo). Item names are saved in players' outfits: never rename one after release.
 - Pictures are fetched with `sce.js`'s VERSION: raise it whenever pictures change. `news.json` holds each version's note.

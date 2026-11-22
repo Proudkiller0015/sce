@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.8.3';
+	const VERSION = '0.9.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -743,8 +743,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ badge: boolean, roomBadge: boolean, updateReady: boolean, updateNotes: boolean }} */
-	const settings = { badge: true, roomBadge: true, updateReady: true, updateNotes: true };
+	/** @type {{ badge: boolean, roomBadge: boolean, activities: boolean, updateReady: boolean, updateNotes: boolean }} */
+	const settings = { badge: true, roomBadge: true, activities: true, updateReady: true, updateNotes: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -880,8 +880,9 @@
 		const ROW = 90;
 		/** @type {[string, keyof typeof settings][]} */
 		const boxes = [
-			['Show the SCE badge on our clothes in the wardrobe', 'badge'],
+			['Show the SCE badge on our clothes and activities', 'badge'],
 			['Show the SCE mark on SCE users in chat rooms', 'roomBadge'],
+			['Add the SCE activities to the activity menu', 'activities'],
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
 		];
@@ -1182,6 +1183,19 @@
 		}, 1000);
 	}
 
+	/** The activities live in activities.js, next to this script; it uses the hooks above (window.SCE.kit). */
+	function loadActivities() {
+		try {
+			const script = document.createElement('script');
+			script.src = `${BASE}activities.js${FRESH}`;
+			script.crossOrigin = 'anonymous';
+			script.onerror = () => problem('Activities', 'activities.js did not load');
+			document.head.appendChild(script);
+		} catch (e) {
+			problem('Activities', e);
+		}
+	}
+
 	/** Once logged in: the settings page, this version's note, then a look for updates now and then. */
 	function startExtras() {
 		hookBadge();
@@ -1203,7 +1217,15 @@
 		}, 500);
 	}
 
-	w.SCE = { version: VERSION, pieces, problems, settings, outfits: () => outfitChoices };
+	w.SCE = {
+		version: VERSION,
+		pieces,
+		problems,
+		settings,
+		outfits: () => outfitChoices,
+		kit: { hookGame, problem, working, gameFunction, settings, ICON, ADDON_NAME },
+	};
 	start();
 	startExtras();
+	loadActivities();
 })();

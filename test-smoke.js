@@ -27,6 +27,7 @@ const PNG = Buffer.from(
 function addonDir(/** @type {boolean} */ withPiece) {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sce-'));
 	fs.copyFileSync(path.join(__dirname, 'sce.js'), path.join(dir, 'sce.js'));
+	fs.copyFileSync(path.join(__dirname, 'activities.js'), path.join(dir, 'activities.js'));
 	fs.copyFileSync(path.join(__dirname, 'icon-64.png'), path.join(dir, 'icon-64.png'));
 	fs.mkdirSync(path.join(dir, 'clothes', 'img', 'Hat'), { recursive: true });
 	fs.mkdirSync(path.join(dir, 'clothes', 'preview'), { recursive: true });
