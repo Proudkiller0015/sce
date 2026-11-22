@@ -70,7 +70,8 @@
 							1,
 							2,
 							3,
-							4
+							4,
+							5
 						]
 					}
 				},
@@ -92,7 +93,8 @@
 							1,
 							2,
 							3,
-							4
+							4,
+							5
 						]
 					}
 				},
@@ -221,6 +223,10 @@
 						{
 							"Name": "Akatsuki",
 							"Text": "Akatsuki clouds"
+						},
+						{
+							"Name": "Dragon",
+							"Text": "Dragon"
 						}
 					]
 				},
