@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.7.1",
+		"title": "Slime Clothing Extension v0.7.1",
+		"text": "Kimono with No obi: the waist is now the kimono's own fabric, its lines and folds, instead of a flat block in the obi's shape. With the obi on nothing changes."
+	},
+	{
 		"id": "0.7.0",
 		"title": "Slime Clothing Extension v0.7.0",
 		"text": "Fixed: the game kept old copies of SCE's pictures saved in your browser and never updated them, so after an update some parts could still show an older look (mismatched layers, gaps in the pattern). SCE now clears its old pictures once after each update and lets the game check them properly."

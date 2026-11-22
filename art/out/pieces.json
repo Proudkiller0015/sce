@@ -14,7 +14,8 @@
 					"Priority": 30,
 					"CreateLayerTypes": [
 						"s",
-						"l"
+						"l",
+						"c"
 					],
 					"ParentGroup": "BodyUpper",
 					"Color": "#2B3A67"
