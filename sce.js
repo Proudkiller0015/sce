@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.1.0';
+	const VERSION = '1.2.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -120,8 +120,11 @@
 
 	// ---- The clothes
 	const FEATURE = 'Clothes';
-	/** @type {Map<string, any>} The registered pieces (clothes.json entries) by asset name. */
+	/** @type {Map<string, any>} The registered pieces (clothes.json entries) by <Group>/<Asset>: one piece may be in two groups. */
 	const pieces = new Map();
+	const pieceKey = (/** @type {string} */ group, /** @type {string} */ name) => `${group}/${name}`;
+	/** The first piece of that asset name, in whichever group (crafts name only the asset). */
+	const pieceNamed = (/** @type {string} */ name) => [...pieces.values()].find((p) => p.name === name);
 	/** @type {Set<string>} Picture files the pieces have. */
 	const images = new Set();
 	/** @type {Map<string, string>} The pieces' texts, by the game's text key. */
@@ -135,7 +138,7 @@
 
 	/** Whether an asset is one of the add-on's. */
 	const isOurs = (/** @type {any} */ asset) =>
-		!!asset && !!asset.Group && pieces.has(asset.Name) && pieces.get(asset.Name).group === asset.Group.Name;
+		!!asset && !!asset.Group && pieces.has(pieceKey(asset.Group.Name, asset.Name));
 
 	/** Fetches the clothes and registers them, once the game has loaded its own items. */
 	function start() {
@@ -245,7 +248,7 @@
 		hookFullTypes();
 		hookOutfits(data.outfits || {});
 		hookGame('ValidationResolveRemoveDiff', 0, 'Keeping the clothes on', keepOnRemove);
-		if (data.pieces.some((/** @type {any} */ p) => pieces.has(p.name) && String(p.group).startsWith('Item'))) {
+		if (data.pieces.some((/** @type {any} */ p) => pieces.has(pieceKey(p.group, p.name)) && String(p.group).startsWith('Item'))) {
 			refreshCraftable();
 		}
 	}
@@ -275,7 +278,7 @@
 			throw new Error(`${piece.name} was not added`);
 		}
 		asset.Description = piece.description;
-		pieces.set(piece.name, piece);
+		pieces.set(pieceKey(piece.group, piece.name), piece);
 		for (const [k, v] of Object.entries(piece.texts || {})) {
 			texts.set(k, String(v));
 		}
@@ -307,7 +310,8 @@
 	 * @param {any} source
 	 * @param {any} group the game's group (its pose mapping: how it draws in each pose)
 	 * @param {string[]} fits
-	 * @param {string[]} posed poses with pictures of their own (drawn from that pose's folder)
+	 * @param {string[]} posed poses with pictures of their own (drawn from that pose's folder), also poses its group
+	 * draws like standing (a hakama's arm poses: its standing picture has holes for the hands in front)
 	 */
 	function standingOnly(source, group, fits, posed = []) {
 		const def = JSON.parse(JSON.stringify(source));
@@ -317,6 +321,9 @@
 				.filter(([, v]) => v !== '')
 				.map(([pose]) => [pose, posed.includes(pose) ? pose : fits.includes(pose) ? '' : 'Hide']),
 		);
+		for (const pose of posed) {
+			def.PoseMapping[pose] = pose;
+		}
 		return def;
 	}
 	/**
@@ -503,8 +510,8 @@
 		}
 		// Assets/Female3DCG/<Group>/[<Pose>/]<Asset>[_<option types>]_<Layer>.png, or <Group>/Preview/<Asset>.png
 		const m = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9]+)\/)?([A-Za-z0-9]+?)((?:_[A-Za-z0-9]+)*)\.png$/.exec(url);
-		const piece = m && pieces.get(m[3]);
-		if (!m || !piece || piece.group !== m[1]) {
+		const piece = m && pieces.get(pieceKey(m[1], m[3]));
+		if (!m || !piece) {
 			return '';
 		}
 		if (m[2] === 'Preview') {
@@ -1104,7 +1111,7 @@
 	}
 	const savedOutfit = () => saved().worn;
 	/** Whether a craft (the game's object) is of an SCE item. */
-	const isOurCraft = (/** @type {any} */ c) => !!c && typeof c.Item === 'string' && pieces.has(c.Item);
+	const isOurCraft = (/** @type {any} */ c) => !!c && typeof c.Item === 'string' && !!pieceNamed(c.Item);
 	/** @type {{ slot: number, craft: string }[]} SCE crafts missing at login and not back yet (restoreCrafts off): the copy keeps them. */
 	let missingCrafts = [];
 	/** The SCE crafts you have now, as the copy keeps them; null when the game's crafts can't be read. */
@@ -1233,7 +1240,7 @@
 			}
 			p.Crafting[slot] = craft;
 			now.push({ slot, craft: s.craft });
-			back.push(craft.Name || pieces.get(craft.Item).description);
+			back.push(craft.Name || pieceNamed(craft.Item).description);
 		}
 		missingCrafts = missingCrafts.filter((m) => !now.some((c) => c.craft === m.craft));
 		if (back.length) {
