@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.9.3",
+		"title": "Slime Clothing Extension v0.9.3",
+		"text": "Fixes: the SCE badge shows on item tiles again; Esc closes SCE's settings page; someone without SCE can now put a top on you in place of the kimono; switching the activities off no longer changes how others' activities feel; small clean-ups."
+	},
+	{
 		"id": "0.9.2",
 		"title": "Slime Clothing Extension v0.9.2",
 		"text": "♻ Crafts of SCE items are safe now: if the game drops them because SCE loaded late, SCE keeps a copy and puts them back (or asks first: Preferences > Extensions > Slime Clothing Extension)."

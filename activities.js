@@ -27,7 +27,7 @@
 	 *   face?: [string, string, number][], react?: [string, string, number][],
 	 * }} Def
 	 * `image`: a game activity icon's name (Icons/Activity/<image>.png), or a path to another game picture.
- * `face`: the doer's face for a while (group, expression, seconds). `react`: the target's face, when their game has
+	 * `face`: the doer's face for a while (group, expression, seconds). `react`: the target's face, when their game has
 	 * SCE and arousal on.
 	 */
 	/** @type {Def[]} */
@@ -251,10 +251,8 @@
 
 	/** Our prerequisites; the game's own ones it checks itself (it passes names it doesn't know). */
 	function prerequisite(/** @type {string} */ prereq, /** @type {any} */ acting, /** @type {any} */ acted, /** @type {any} */ group) {
-		const cloth = (/** @type {any} */ C, /** @type {string} */ group) => (w.InventoryGet ? w.InventoryGet(C, group) : null);
+		const cloth = (/** @type {any} */ C, /** @type {string} */ name) => w.InventoryGet(C, name);
 		switch (prereq) {
-			case 'SCE_TargetHasBreasts':
-				return !acted.IsFlatChested();
 			case 'SCE_HasBreasts':
 				return !acting.IsFlatChested();
 			case 'SCE_BreastsBare':
@@ -313,10 +311,7 @@
 	}
 
 	/** The game shows a missing text as this, so players without SCE get our line in its place. */
-	const missingTags = (/** @type {string} */ key) => [
-		`MISSING TEXT IN "ActivityDictionary.csv": ${key}`,
-		`MISSING ACTIVITY DESCRIPTION FOR KEYWORD ${key}`,
-	];
+	const missingTags = (/** @type {string} */ key) => [`MISSING TEXT IN "ActivityDictionary.csv": ${key}`];
 
 	function start() {
 		let ok = hookGame('ActivityDictionaryText', 0, FEATURE, (args, next) => {
@@ -326,9 +321,10 @@
 		ok = ok && hookGame('ActivityCheckPrerequisite', 0, FEATURE, (args, next) =>
 			typeof args[0] === 'string' && args[0].startsWith('SCE_') ? prerequisite(args[0], args[1], args[2], args[3]) : next(args),
 		);
-		// Ours have no like/dislike setting: they count as "normal" (2), or are off when switched off in the settings.
+		// Ours have no like/dislike setting: they count as "normal" (2). Switched off in the settings, you can't do them
+		// (the game asks with Self false for the doer); done to you by others they still count as normal.
 		ok = ok && hookGame('PreferenceGetActivityFactor', 0, FEATURE, (args, next) =>
-			isOursName(args[1]) ? (settings.activities === false ? 0 : 2) : next(args),
+			isOursName(args[1]) ? (settings.activities === false && args[2] === false ? 0 : 2) : next(args),
 		);
 		if (!ok) {
 			return;

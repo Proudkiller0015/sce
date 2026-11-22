@@ -1,10 +1,10 @@
 // Slime Clothing Extension (SCE): a Bondage Club clothing add-on, Echo-style. It adds its own clothes to the game's
-// clothing groups, with their pictures and texts, and a row at the end of the wardrobe that puts on its outfits in one
-// go. The clothes are listed in clothes/clothes.json, built by tools/build-clothes.js. Pictures are fetched with the
-// add-on's VERSION: raise it whenever pictures change, or players keep cached old ones.
+// clothing groups, with their pictures and texts, and (when clothes.json lists outfits) a row at the end of the wardrobe
+// that puts on an outfit in one go. The clothes are listed in clothes/clothes.json, built by tools/build-clothes.js.
+// Pictures are fetched with the add-on's VERSION: raise it whenever pictures change, or players keep cached old ones.
 //
-// Every game hook goes through guard(): a feature that meets a game it doesn't expect is switched off for the session
-// and the game's own code runs untouched. It never throws into the game.
+// Every game hook goes through hookGame(): a feature that meets a game it doesn't expect is switched off for the
+// session and the game's own code runs untouched. It never throws into the game.
 (() => {
 	'use strict';
 	/** @type {any} */
@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.9.2';
+	const VERSION = '0.9.3';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -33,7 +33,12 @@
 	let mod = null;
 	const gameMod = () => {
 		if (!mod && w.bcModSdk && typeof w.bcModSdk.registerMod === 'function') {
-			mod = w.bcModSdk.registerMod({ name: ADDON_ID, fullName: ADDON_NAME, version: VERSION });
+			try {
+				mod = w.bcModSdk.registerMod({ name: ADDON_ID, fullName: ADDON_NAME, version: VERSION });
+			} catch (e) {
+				// (another mod already took the name): every hook then reports the game function as missing
+				console.warn(`[${ADDON_NAME}] the mod SDK refused SCE: ${String((e && e.message) || e)}`);
+			}
 		}
 		return mod;
 	};
@@ -228,42 +233,11 @@
 			typeof args[0] === 'string' && texts.has(args[0]) ? texts.get(args[0]) : next(args),
 		);
 		for (const piece of data.pieces) {
-			const group = w.AssetGroupGet('Female3DCG', piece.group);
-			const groupDef = w.AssetFemale3DCG.find((/** @type {any} */ g) => g && g.Group === piece.group);
-			if (!group || !groupDef || !Array.isArray(group.Asset)) {
-				throw new Error(`the game has no ${piece.group} group as expected`);
-			}
-			if (w.AssetGet('Female3DCG', piece.group, piece.name)) {
-				continue;
-			}
 			try {
-				w.AssetAdd(
-					group,
-					standingOnly(piece.def, group, piece.fits || [], piece.poses || []),
-					piece.extended ? { [piece.group]: { [piece.name]: withoutGameMessages(piece.extended) } } : undefined,
-					groupDef,
-				);
+				addPiece(piece);
 			} catch (e) {
-				unregister(group, piece.name);
-				throw e;
-			}
-			const asset = w.AssetGet('Female3DCG', piece.group, piece.name);
-			if (!asset) {
-				throw new Error(`${piece.name} was not added`);
-			}
-			asset.Description = piece.description;
-			pieces.set(piece.name, piece);
-			for (const [k, v] of Object.entries(piece.texts || {})) {
-				texts.set(k, String(v));
-			}
-			for (const [k, v] of Object.entries(piece.layerNames || {})) {
-				layerNames.set(k, String(v));
-			}
-			if (piece.colorHistory && typeof piece.colorHistory === 'object') {
-				colorHistories.set(piece.name, piece.colorHistory);
-			}
-			for (const [k, v] of Object.entries(piece.groupNames || {})) {
-				groupNames.set(k, String(v));
+				// (that piece is left out; the others, and the hooks they need, carry on)
+				problem(`Clothes: ${piece.name}`, e);
 			}
 		}
 		hookLayerNames();
@@ -273,6 +247,46 @@
 		hookGame('ValidationResolveRemoveDiff', 0, 'Keeping the clothes on', keepOnRemove);
 		if (data.pieces.some((/** @type {any} */ p) => pieces.has(p.name) && String(p.group).startsWith('Item'))) {
 			refreshCraftable();
+		}
+	}
+	/** Adds one piece to its group, with its texts and names. Throws when the game refuses it (nothing of it stays). */
+	function addPiece(/** @type {any} */ piece) {
+		const group = w.AssetGroupGet('Female3DCG', piece.group);
+		const groupDef = w.AssetFemale3DCG.find((/** @type {any} */ g) => g && g.Group === piece.group);
+		if (!group || !groupDef || !Array.isArray(group.Asset)) {
+			throw new Error(`the game has no ${piece.group} group as expected`);
+		}
+		if (w.AssetGet('Female3DCG', piece.group, piece.name)) {
+			return;
+		}
+		try {
+			w.AssetAdd(
+				group,
+				standingOnly(piece.def, group, piece.fits || [], piece.poses || []),
+				piece.extended ? { [piece.group]: { [piece.name]: withoutGameMessages(piece.extended) } } : undefined,
+				groupDef,
+			);
+		} catch (e) {
+			unregister(group, piece.name);
+			throw e;
+		}
+		const asset = w.AssetGet('Female3DCG', piece.group, piece.name);
+		if (!asset) {
+			throw new Error(`${piece.name} was not added`);
+		}
+		asset.Description = piece.description;
+		pieces.set(piece.name, piece);
+		for (const [k, v] of Object.entries(piece.texts || {})) {
+			texts.set(k, String(v));
+		}
+		for (const [k, v] of Object.entries(piece.layerNames || {})) {
+			layerNames.set(k, String(v));
+		}
+		if (piece.colorHistory && typeof piece.colorHistory === 'object') {
+			colorHistories.set(piece.name, piece.colorHistory);
+		}
+		for (const [k, v] of Object.entries(piece.groupNames || {})) {
+			groupNames.set(k, String(v));
 		}
 	}
 	/** The game lists what can be crafted when it loads its items: our items are added after, so the list is made again. */
@@ -305,7 +319,10 @@
 		);
 		return def;
 	}
-	/** The extended item config, sending no message of the game's own when the option changes (it has no text for ours). */
+	/**
+	 * The extended item config, sending no message of the game's own when an option changes: the game has no text for
+	 * ours. (Clothes never send one; items in the other groups do.)
+	 */
 	function withoutGameMessages(/** @type {any} */ extended) {
 		return { ...extended, ScriptHooks: { ...(extended.ScriptHooks || {}), PublishAction: () => {} } };
 	}
@@ -482,10 +499,10 @@
 	/** The add-on's address for one of the game's picture paths, or '' when it isn't one of ours. */
 	function picture(/** @type {string} */ url) {
 		if (/^(?:\.\/)?Icons\/Previews\/SCE\.png$/.test(url)) {
-			return `${BASE}icon-64.png${FRESH}`;
+			return ICON;
 		}
 		// Assets/Female3DCG/<Group>/[<Pose>/]<Asset>[_<option types>]_<Layer>.png, or <Group>/Preview/<Asset>.png
-		const m =/^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9]+)\/)?([A-Za-z0-9]+?)((?:_[A-Za-z0-9]+)*)\.png$/.exec(url);
+		const m = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9]+)\/)?([A-Za-z0-9]+?)((?:_[A-Za-z0-9]+)*)\.png$/.exec(url);
 		const piece = m && pieces.get(m[3]);
 		if (!m || !piece || piece.group !== m[1]) {
 			return '';
@@ -498,13 +515,15 @@
 	}
 	/** Sends the game's requests for our pictures to the add-on's copies, and gives our buttons their pictures. */
 	function hookPictures() {
+		// (priority 10: before other add-ons' own picture redirects, which don't know our files)
 		const ok = hookGame('CommonFetch', 10, FEATURE, (args, next) => {
-			// The game's picture store checks its saved copies for updates with a Request (keeping its "changed since"
-			// headers): that check must reach our files too, or a saved copy of an older picture is used forever.
+			// The game's picture store checks its saved copies for updates with a Request: that check is sent to our
+			// files too. Without the game's "changed since" headers: GitHub Pages refuses them from another site, and the
+			// version in our addresses already tells copies apart.
 			if (typeof Request === 'function' && args[0] instanceof Request) {
 				// (its address is a full one: match from the Assets folder on)
 				const moved = picture(new URL(args[0].url).pathname.replace(/^.*?\/(?=Assets\/)/, ''));
-				return next(moved ? [new Request(moved, { headers: args[0].headers }), ...args.slice(1)] : args);
+				return next(moved ? [new Request(moved), ...args.slice(1)] : args);
 			}
 			const url = typeof args[0] === 'string' ? picture(args[0]) : '';
 			return next(url ? [url, ...args.slice(1)] : args);
@@ -516,7 +535,7 @@
 					return next(args);
 				}
 				const options = { ...(args[4] || {}) };
-				options.image ??= `${CLOTHES}preview/${asset.Name}.png`;
+				options.image ??= `${CLOTHES}preview/${asset.Name}.png${FRESH}`;
 				return next([args[0], args[1], args[2], args[3], options, ...args.slice(5)]);
 			});
 		}
@@ -560,9 +579,11 @@
 	 * outfit it sends leaves them out, which the game would otherwise take as removing them.
 	 */
 	function keepOnRemove(/** @type {any[]} */ args, /** @type {(a: any[]) => any} */ next) {
-		const [previous, params] = args;
+		const [previous, params, isSwap] = args;
 		const c = params && params.C;
+		// (putting something else on in its place is a choice they made, not a piece their game didn't know)
 		if (
+			isSwap !== true &&
 			previous &&
 			isOurs(previous.Asset) &&
 			c &&
@@ -749,9 +770,8 @@
 		w.CharacterAppearanceHeaderTextTime = (typeof w.CommonTime === 'function' ? w.CommonTime() : Date.now()) + 6000;
 	}
 
-	/** For the console and tests: what is registered, and which features were switched off. */
 	// ---- Settings (Preferences > Extensions), the SCE badge on item tiles, update notes and the update-ready notice
-	const ICON = `${BASE}icon-64.png`;
+	const ICON = `${BASE}icon-64.png${FRESH}`;
 	const SETTINGS_KEY = 'sce.settings';
 	const SEEN_KEY = 'sce.notesSeen';
 	/** The badge's name among the game's preview icons (drawn from Icons/Previews/<name>.png). */
@@ -790,7 +810,6 @@
 		return false;
 	};
 
-	/** Shows a game toast with the add-on's icon; does nothing on a game without toasts. */
 	/** The game colours only its own toast types; ours gets a solid background so its text stays readable over any room. */
 	function toastStyle() {
 		if (document.getElementById('sce-toast-style')) {
@@ -802,6 +821,7 @@
 		document.head.appendChild(style);
 	}
 
+	/** Shows a game toast with the add-on's icon; does nothing on a game without toasts. */
 	function toast(/** @type {string} */ title, /** @type {string} */ text, ms = 12000) {
 		try {
 			if (w.ToastManager && typeof w.ToastManager.custom === 'function') {
@@ -822,6 +842,15 @@
 		hookGame('InterfaceTextGet', 0, 'Badge', (args, next) =>
 			args[0] === `PreviewIcon${BADGE}` ? ADDON_NAME : next(args),
 		);
+		// Item buttons made of page elements load a named badge straight from the game's folder, where ours isn't: they
+		// get it with its own picture (the canvas draws it through the picture hook)
+		if (gameFunction('ElementButton._ParseIcons')) {
+			hookGame('ElementButton._ParseIcons', 0, 'Badge', (args, next) =>
+				Array.isArray(args[1]) && args[1].includes(BADGE)
+					? next([args[0], args[1].map((i) => (i === BADGE ? { name: BADGE, iconSrc: ICON, tooltipText: ADDON_NAME } : i)), ...args.slice(2)])
+					: next(args),
+			);
+		}
 	}
 
 	/** When GitHub Pages has a newer version, says once that a reload gets it. */
@@ -915,17 +944,17 @@
 				load: () => {
 					restoreSaid = '';
 				},
+				// (the game calls these when the page closes, or another add-on opens its own)
+				exit: () => true,
+				unload: () => {},
 				run: () => {
+					// The game's canvas is a script-level `let`, not a window property.
+					const ctx = MainCanvas;
+					const align = ctx.textAlign;
 					try {
-						// The game's canvas is a script-level `let`, not a window property.
-						const ctx = MainCanvas;
 						ctx.textAlign = 'left';
 						w.DrawText(`- ${ADDON_NAME} - v${VERSION}`, LEFT, 125, 'Black', 'Gray');
-						boxes.forEach(([label, key], i) => {
-							ctx.textAlign = 'left';
-							w.DrawCheckbox(LEFT, TOP + i * ROW, 64, 64, label, settings[key]);
-						});
-						ctx.textAlign = 'left';
+						boxes.forEach(([label, key], i) => w.DrawCheckbox(LEFT, TOP + i * ROW, 64, 64, label, settings[key]));
 						const off = [...problems.keys()];
 						w.DrawText(
 							off.length ? `Switched off this session: ${off.join(', ')}` : 'Everything is working.',
@@ -934,29 +963,29 @@
 							off.length ? 'Red' : 'Black',
 							'Gray',
 						);
+						if (restoreSaid) {
+							w.DrawText(restoreSaid, RESTORE[0] + RESTORE[2] + 30, RESTORE[1] + 32, 'Black', 'Gray');
+						}
 						ctx.textAlign = 'center';
 						w.DrawButton(...RESTORE, 'Put my SCE clothes and crafts back', 'White');
-						if (restoreSaid) {
-							ctx.textAlign = 'left';
-							w.DrawText(restoreSaid, RESTORE[0] + RESTORE[2] + 30, RESTORE[1] + 32, 'Black', 'Gray');
-							ctx.textAlign = 'center';
-						}
 						w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
 					} catch (e) {
 						problem('Settings', e);
+					} finally {
+						ctx.textAlign = align;
 					}
 				},
 				click: () => {
 					try {
 						if (mouseIn(EXIT)) {
-							if (typeof w.PreferenceSubscreenExtensionsClear === 'function') {
-								w.PreferenceSubscreenExtensionsClear();
+							if (typeof w.PreferenceSubscreenExtensionsExit === 'function') {
+								w.PreferenceSubscreenExtensionsExit();
 							}
 							return;
 						}
 						if (mouseIn(RESTORE)) {
 							const back = putBack();
-							restoreSaid = back.length ? `Put back: ${back.join(', ')}` : 'Nothing was missing.';
+							restoreSaid = back.length ? `Put back: ${back.join(', ')}` : 'Nothing was missing that you may put on now.';
 							return;
 						}
 						boxes.forEach(([, key], i) => {
@@ -1025,12 +1054,12 @@
 			return null;
 		}
 	}
-	/** Whether this login's restore check has run: before it, the outfit may be missing pieces, so no copy is taken. */
-	let restoreChecked = 0;
+	/** The member number whose login the restore check has run for: before it, the outfit may be missing pieces, so no copy is taken. */
+	let restoredFor = 0;
 	/** Saves a copy of the SCE clothes you wear, when it changed. */
 	function saveOutfit() {
 		const p = w.Player;
-		if (!p || !p.MemberNumber || restoreChecked !== p.MemberNumber || !p.ExtensionSettings || !Array.isArray(p.Appearance)) {
+		if (!p || !p.MemberNumber || restoredFor !== p.MemberNumber || !p.ExtensionSettings || !Array.isArray(p.Appearance)) {
 			return;
 		}
 		const worn = p.Appearance.filter((/** @type {any} */ i) => i && isOurs(i.Asset)).map((/** @type {any} */ i) => ({
@@ -1060,7 +1089,10 @@
 			if (!asset || !isOurs(asset) || w.InventoryGet(p, s.Group)) {
 				continue;
 			}
-			if (typeof w.InventoryGroupIsBlocked === 'function' && w.InventoryGroupIsBlocked(p, s.Group)) {
+			if (
+				(typeof w.InventoryGroupIsBlocked === 'function' && w.InventoryGroupIsBlocked(p, s.Group)) ||
+				(typeof w.AppearanceGroupAllowed === 'function' && !w.AppearanceGroupAllowed(p, s.Group))
+			) {
 				continue;
 			}
 			w.InventoryWear(p, s.Name, s.Group, s.Color);
@@ -1073,14 +1105,18 @@
 			}
 		}
 		if (back.length) {
-			w.CharacterRefresh(p);
-			if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && typeof w.ChatRoomCharacterUpdate === 'function') {
-				w.ChatRoomCharacterUpdate(p);
-			} else if (typeof w.ServerPlayerAppearanceSync === 'function') {
-				w.ServerPlayerAppearanceSync();
-			}
+			syncPlayer();
 		}
 		return back;
+	}
+	/** Redraws you and sends your outfit: to the room when in one, else to your account. */
+	function syncPlayer() {
+		w.CharacterRefresh(w.Player);
+		if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && typeof w.ChatRoomCharacterUpdate === 'function') {
+			w.ChatRoomCharacterUpdate(w.Player);
+		} else if (typeof w.ServerPlayerAppearanceSync === 'function') {
+			w.ServerPlayerAppearanceSync();
+		}
 	}
 	/**
 	 * Puts saved SCE crafts back into your crafts: into their own slot when it is empty, else the first empty one.
@@ -1136,7 +1172,9 @@
 	}
 	/** The settings button: everything missing, clothes and crafts. Returns their names. */
 	function putBack() {
-		const back = restoreOutfit();
+		// (only clothes you may change yourself now: a bound player can't dress herself through the settings)
+		const p = w.Player;
+		const back = p && (typeof p.CanChangeOwnClothes !== 'function' || p.CanChangeOwnClothes()) ? restoreOutfit() : [];
 		/** @type {string[]} */
 		let crafts = [];
 		try {
@@ -1145,33 +1183,28 @@
 		} catch (e) {
 			problem('Restore crafts', e);
 		}
-		saveOutfit();
 		return [...back, ...crafts];
 	}
 	/** Once per login, when SCE's clothes are in and your outfit has loaded: puts back what the game dropped. */
 	function checkRestore() {
 		const p = w.Player;
-		if (!p || !p.MemberNumber || restoreChecked === p.MemberNumber || !pieces.size || !Array.isArray(p.Appearance) || !p.Appearance.length) {
+		if (!p || !p.MemberNumber || restoredFor === p.MemberNumber || !pieces.size || !Array.isArray(p.Appearance) || !p.Appearance.length) {
 			return;
 		}
 		if (!p.ExtensionSettings || ['AssetGet', 'InventoryGet', 'InventoryWear', 'CharacterRefresh'].some((f) => !gameFunction(f))) {
 			return;
 		}
-		restoreChecked = p.MemberNumber;
+		restoredFor = p.MemberNumber;
 		try {
 			if (fixOwnColors()) {
-				w.CharacterRefresh(p);
-				if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom() && typeof w.ChatRoomCharacterUpdate === 'function') {
-					w.ChatRoomCharacterUpdate(p);
-				} else if (typeof w.ServerPlayerAppearanceSync === 'function') {
-					w.ServerPlayerAppearanceSync();
-				}
+				syncPlayer();
 			}
 			const back = restoreOutfit();
 			if (back.length) {
 				toast(ADDON_NAME, `Put back what the game had dropped: ${back.join(', ')}.`);
 			}
 			checkCrafts();
+			// (the first copy of this login: when nothing was missing, nothing was sent that would have saved it)
 			saveOutfit();
 		} catch (e) {
 			problem('Restore', e);
@@ -1262,6 +1295,10 @@
 		}
 	}
 
+	/** Where the mark sits on a character in the room (at zoom 1): in the row SlimeBeep and ER use, right of ER's. */
+	const [MARK_X, MARK_Y, MARK_SIZE, MARK_VERSION_X] = [406, 42, 34, 470];
+	/** SlimeBeep's and ER's marks in that row. */
+	const NEIGHBOUR_MARKS_X = [330, 368];
 	/** Draws the mark above an SCE user, right of ER's, and the version while the mouse is on it. */
 	function drawRoomBadge(/** @type {any} */ C, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ zoom) {
 		try {
@@ -1275,15 +1312,15 @@
 			if (!version) {
 				return;
 			}
-			const [bx, by, size] = [x + 406 * zoom, y + 42 * zoom, 34 * zoom];
+			const [bx, by, size] = [x + MARK_X * zoom, y + MARK_Y * zoom, MARK_SIZE * zoom];
 			const mouse = typeof w.MouseIn === 'function';
-			// SlimeBeep's and ER's versions are written right of their marks (x+330, x+368), over this spot: step aside
-			if (mouse && (w.MouseIn(x + 330 * zoom, by, size, size) || w.MouseIn(x + 368 * zoom, by, size, size))) {
+			// SlimeBeep and ER write their version right of their mark, over this one: it is hidden meanwhile
+			if (mouse && NEIGHBOUR_MARKS_X.some((nx) => w.MouseIn(x + nx * zoom, by, size, size))) {
 				return;
 			}
 			w.DrawImageResize(ICON, bx, by, size, size);
 			if (mouse && w.MouseIn(bx, by, size, size)) {
-				w.DrawTextFit(version, x + 470 * zoom, by + 18 * zoom, 60 * zoom, '#7dffb0', 'black');
+				w.DrawTextFit(version, x + MARK_VERSION_X * zoom, by + 18 * zoom, 60 * zoom, '#7dffb0', 'black');
 			}
 		} catch {
 			// a mark is never worth an error
@@ -1292,6 +1329,7 @@
 
 	/** The hello listener, the drawing and the once-per-room hello. */
 	function hookRoomBadge() {
+		// (priority 1000: ahead of add-ons that answer hidden messages themselves and don't pass them on; it always does)
 		hookGame('ChatRoomMessage', 1000, 'RoomBadge', (args, next) => {
 			try {
 				const m = args[0];
@@ -1351,9 +1389,13 @@
 
 	/** Once logged in: the settings page, this version's note, then a look for updates now and then. */
 	function startExtras() {
-		hookBadge();
-		hookRoomBadge();
-		hookRestore();
+		try {
+			hookBadge();
+			hookRoomBadge();
+			hookRestore();
+		} catch (e) {
+			problem('Extras', e);
+		}
 		let tries = 0;
 		const wait = setInterval(() => {
 			if (++tries > 2400) {
@@ -1370,6 +1412,7 @@
 		}, 500);
 	}
 
+	/** For the console, tests and activities.js: what is registered, which features were switched off, the hooks. */
 	w.SCE = {
 		version: VERSION,
 		pieces,
