@@ -470,7 +470,7 @@
 						"Name": "Top",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 30,
+						"Priority": 29,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -485,7 +485,7 @@
 						"Name": "Sleeves",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"CopyLayerColor": "Top",
@@ -498,7 +498,7 @@
 						"Name": "Cords",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -627,7 +627,7 @@
 						"Name": "SleevesStand",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"CopyLayerColor": "Top",
@@ -646,7 +646,7 @@
 						"Name": "CordsStand",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"CopyLayerColor": "Cords",
@@ -680,7 +680,7 @@
 						"Name": "Sleeves",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"CopyLayerColor": "Top",
@@ -693,7 +693,7 @@
 						"Name": "Cords",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -793,7 +793,7 @@
 							"KneelingSpread": 90
 						},
 						"Top": 0,
-						"Priority": 31,
+						"Priority": 29,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -811,7 +811,7 @@
 							"KneelingSpread": 90
 						},
 						"Top": 0,
-						"Priority": 31,
+						"Priority": 29,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1070,7 +1070,7 @@
 						"Name": "Collar",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 31,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1085,7 +1085,7 @@
 						"Name": "Trim",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1100,7 +1100,7 @@
 						"Name": "Scarf",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1295,7 +1295,7 @@
 						"Name": "Ribbon",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1310,7 +1310,7 @@
 						"Name": "Buttons",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1505,7 +1505,7 @@
 						"Name": "Tie",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
@@ -1520,7 +1520,7 @@
 						"Name": "Buttons",
 						"Left": 0,
 						"Top": 0,
-						"Priority": 32,
+						"Priority": 30,
 						"ParentGroup": "BodyUpper",
 						"AllowColorize": true,
 						"Color": [
