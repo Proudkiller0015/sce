@@ -341,258 +341,6 @@
 			]
 		},
 		{
-			"name": "SlimeMikoTop",
-			"group": "Cloth",
-			"description": "Miko Top",
-			"def": {
-				"Name": "SlimeMikoTop",
-				"ParentGroup": "",
-				"Priority": 30,
-				"Value": 0,
-				"Hide": [],
-				"DefaultColor": [
-					"#F4F2EE",
-					"#C0182A"
-				],
-				"Layer": [
-					{
-						"Name": "Top",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#F4F2EE"
-						]
-					},
-					{
-						"Name": "Sleeves",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 32,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"CopyLayerColor": "Top"
-					},
-					{
-						"Name": "Cords",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 32,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#C0182A"
-						]
-					}
-				]
-			},
-			"extended": null,
-			"texts": {},
-			"layerNames": {
-				"ClothSlimeMikoTopTop": "Top",
-				"ClothSlimeMikoTopCords": "Cords"
-			},
-			"groupNames": {},
-			"colorHistory": {},
-			"fits": [],
-			"poses": [
-				"AllFours",
-				"BackBoxTie",
-				"BackCuffs",
-				"BackElbowTouch",
-				"Hogtied",
-				"OverTheHead",
-				"TapedHands",
-				"Yoked"
-			]
-		},
-		{
-			"name": "SlimeMikoTop",
-			"group": "ClothOuter",
-			"description": "Miko Top",
-			"def": {
-				"Name": "SlimeMikoTop",
-				"ParentGroup": "",
-				"Priority": 30,
-				"Value": 0,
-				"Hide": [],
-				"DefaultColor": [
-					"#F4F2EE",
-					"#C0182A"
-				],
-				"Layer": [
-					{
-						"Name": "Top",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 30,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#F4F2EE"
-						]
-					},
-					{
-						"Name": "Sleeves",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 32,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"CopyLayerColor": "Top"
-					},
-					{
-						"Name": "Cords",
-						"Left": 0,
-						"Top": 0,
-						"Priority": 32,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#C0182A"
-						]
-					}
-				]
-			},
-			"extended": null,
-			"texts": {},
-			"layerNames": {
-				"ClothOuterSlimeMikoTopTop": "Top",
-				"ClothOuterSlimeMikoTopCords": "Cords"
-			},
-			"groupNames": {},
-			"colorHistory": {},
-			"fits": [],
-			"poses": [
-				"AllFours",
-				"BackBoxTie",
-				"BackCuffs",
-				"BackElbowTouch",
-				"Hogtied",
-				"OverTheHead",
-				"TapedHands",
-				"Yoked"
-			]
-		},
-		{
-			"name": "SlimeHakama",
-			"group": "ClothLower",
-			"description": "Hakama",
-			"def": {
-				"Name": "SlimeHakama",
-				"ParentGroup": "",
-				"Priority": 26,
-				"Value": 0,
-				"Hide": [],
-				"DefaultColor": [
-					"#B5121F",
-					"#B5121F"
-				],
-				"Layer": [
-					{
-						"Name": "HakamaUnder",
-						"Left": {
-							"": 0,
-							"KneelingSpread": 90
-						},
-						"Top": 0,
-						"Priority": 26,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"CopyLayerColor": "Hakama",
-						"PoseMapping": {
-							"AllFours": "Hide",
-							"BackBoxTie": "Hide",
-							"BackCuffs": "Hide",
-							"BackElbowTouch": "Hide",
-							"Hogtied": "Hide",
-							"OverTheHead": "Hide",
-							"TapedHands": "Hide",
-							"Yoked": "Hide"
-						},
-						"InheritPoseMappingFields": true
-					},
-					{
-						"Name": "BowUnder",
-						"Left": {
-							"": 0,
-							"KneelingSpread": 90
-						},
-						"Top": 0,
-						"Priority": 26,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"CopyLayerColor": "Bow",
-						"PoseMapping": {
-							"AllFours": "Hide",
-							"BackBoxTie": "Hide",
-							"BackCuffs": "Hide",
-							"BackElbowTouch": "Hide",
-							"Hogtied": "Hide",
-							"OverTheHead": "Hide",
-							"TapedHands": "Hide",
-							"Yoked": "Hide"
-						},
-						"InheritPoseMappingFields": true
-					},
-					{
-						"Name": "Hakama",
-						"Left": {
-							"": 0,
-							"KneelingSpread": 90
-						},
-						"Top": 0,
-						"Priority": 31,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#B5121F"
-						]
-					},
-					{
-						"Name": "Bow",
-						"Left": {
-							"": 0,
-							"KneelingSpread": 90
-						},
-						"Top": 0,
-						"Priority": 31,
-						"ParentGroup": "BodyUpper",
-						"AllowColorize": true,
-						"Color": [
-							"#B5121F"
-						]
-					}
-				]
-			},
-			"extended": null,
-			"texts": {},
-			"layerNames": {
-				"ClothLowerSlimeHakamaHakama": "Hakama",
-				"ClothLowerSlimeHakamaBow": "Bow"
-			},
-			"groupNames": {},
-			"colorHistory": {},
-			"fits": [
-				"Kneel",
-				"KneelingSpread",
-				"LegsClosed",
-				"Spread"
-			],
-			"poses": [
-				"AllFours",
-				"BackBoxTie",
-				"BackCuffs",
-				"BackElbowTouch",
-				"Hogtied",
-				"OverTheHead",
-				"TapedHands",
-				"Yoked"
-			]
-		},
-		{
 			"name": "SlimeGohei",
 			"group": "ItemHandheld",
 			"description": "Gohei",
@@ -645,6 +393,461 @@
 			"colorHistory": {},
 			"fits": [],
 			"poses": []
+		},
+		{
+			"name": "SlimeMikoTop",
+			"group": "Cloth",
+			"description": "Miko Top",
+			"def": {
+				"Name": "SlimeMikoTop",
+				"ParentGroup": "",
+				"Priority": 24,
+				"Value": 0,
+				"Hide": [],
+				"DefaultColor": [
+					"#F4F2EE",
+					"#C0182A"
+				],
+				"Layer": [
+					{
+						"Name": "TopStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 24,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "SleevesStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 27,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "CordsStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 27,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Cords",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Top",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 30,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#F4F2EE"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Sleeves",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Cords",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#C0182A"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					}
+				]
+			},
+			"extended": null,
+			"texts": {},
+			"layerNames": {
+				"ClothSlimeMikoTopTop": "Top",
+				"ClothSlimeMikoTopCords": "Cords"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [
+				"TapedHands"
+			],
+			"poses": [
+				"AllFours",
+				"BackBoxTie",
+				"BackCuffs",
+				"BackElbowTouch",
+				"Hogtied",
+				"OverTheHead",
+				"Yoked"
+			]
+		},
+		{
+			"name": "SlimeMikoTop",
+			"group": "ClothOuter",
+			"description": "Miko Top",
+			"def": {
+				"Name": "SlimeMikoTop",
+				"ParentGroup": "",
+				"Priority": 27,
+				"Value": 0,
+				"Hide": [],
+				"DefaultColor": [
+					"#F4F2EE",
+					"#C0182A"
+				],
+				"Layer": [
+					{
+						"Name": "TopUnder",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 27,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "SleevesUnder",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 27,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "CordsUnder",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 27,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Cords",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "TopStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 30,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "SleevesStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "CordsStand",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Cords",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Top",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 30,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#F4F2EE"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Sleeves",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Top",
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Cords",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 32,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#C0182A"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					}
+				]
+			},
+			"extended": null,
+			"texts": {},
+			"layerNames": {
+				"ClothOuterSlimeMikoTopTop": "Top",
+				"ClothOuterSlimeMikoTopCords": "Cords"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [
+				"TapedHands"
+			],
+			"poses": [
+				"AllFours",
+				"BackBoxTie",
+				"BackCuffs",
+				"BackElbowTouch",
+				"Hogtied",
+				"OverTheHead",
+				"Yoked"
+			]
+		},
+		{
+			"name": "SlimeHakama",
+			"group": "ClothLower",
+			"description": "Hakama",
+			"def": {
+				"Name": "SlimeHakama",
+				"ParentGroup": "",
+				"Priority": 26,
+				"Value": 0,
+				"Hide": [],
+				"DefaultColor": [
+					"#B5121F",
+					"#B5121F"
+				],
+				"Layer": [
+					{
+						"Name": "HakamaStand",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 26,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Hakama",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "BowStand",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 26,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"CopyLayerColor": "Bow",
+						"PoseMapping": {
+							"AllFours": "Hide",
+							"BackBoxTie": "Hide",
+							"BackCuffs": "Hide",
+							"BackElbowTouch": "Hide",
+							"Hogtied": "Hide",
+							"OverTheHead": "Hide",
+							"Yoked": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Hakama",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 31,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#B5121F"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					},
+					{
+						"Name": "Bow",
+						"Left": {
+							"": 0,
+							"KneelingSpread": 90
+						},
+						"Top": 0,
+						"Priority": 31,
+						"ParentGroup": "BodyUpper",
+						"AllowColorize": true,
+						"Color": [
+							"#B5121F"
+						],
+						"PoseMapping": {
+							"BaseUpper": "Hide"
+						},
+						"InheritPoseMappingFields": true
+					}
+				]
+			},
+			"extended": null,
+			"texts": {},
+			"layerNames": {
+				"ClothLowerSlimeHakamaHakama": "Hakama",
+				"ClothLowerSlimeHakamaBow": "Bow"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [
+				"Kneel",
+				"KneelingSpread",
+				"LegsClosed",
+				"Spread",
+				"TapedHands"
+			],
+			"poses": [
+				"AllFours",
+				"BackBoxTie",
+				"BackCuffs",
+				"BackElbowTouch",
+				"Hogtied",
+				"OverTheHead",
+				"Yoked"
+			]
 		}
 	],
 	"images": [
@@ -4104,24 +4307,24 @@
 		"img/Cloth/SlimeKimono_XLarge_s1l2p4_PatternOutline.png",
 		"img/Cloth/SlimeKimono_XLarge_s1l2p5_Pattern.png",
 		"img/Cloth/SlimeKimono_XLarge_s1l2p5_PatternOutline.png",
-		"img/Cloth/SlimeMikoTop_FlatMedium_Cords.png",
-		"img/Cloth/SlimeMikoTop_FlatMedium_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_FlatMedium_Top.png",
-		"img/Cloth/SlimeMikoTop_FlatSmall_Cords.png",
-		"img/Cloth/SlimeMikoTop_FlatSmall_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_FlatSmall_Top.png",
-		"img/Cloth/SlimeMikoTop_Large_Cords.png",
-		"img/Cloth/SlimeMikoTop_Large_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_Large_Top.png",
-		"img/Cloth/SlimeMikoTop_Normal_Cords.png",
-		"img/Cloth/SlimeMikoTop_Normal_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_Normal_Top.png",
-		"img/Cloth/SlimeMikoTop_Small_Cords.png",
-		"img/Cloth/SlimeMikoTop_Small_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_Small_Top.png",
-		"img/Cloth/SlimeMikoTop_XLarge_Cords.png",
-		"img/Cloth/SlimeMikoTop_XLarge_Sleeves.png",
-		"img/Cloth/SlimeMikoTop_XLarge_Top.png",
+		"img/Cloth/SlimeMikoTop_FlatMedium_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_FlatMedium_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_FlatMedium_TopStand.png",
+		"img/Cloth/SlimeMikoTop_FlatSmall_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_FlatSmall_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_FlatSmall_TopStand.png",
+		"img/Cloth/SlimeMikoTop_Large_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_Large_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_Large_TopStand.png",
+		"img/Cloth/SlimeMikoTop_Normal_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_Normal_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_Normal_TopStand.png",
+		"img/Cloth/SlimeMikoTop_Small_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_Small_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_Small_TopStand.png",
+		"img/Cloth/SlimeMikoTop_XLarge_CordsStand.png",
+		"img/Cloth/SlimeMikoTop_XLarge_SleevesStand.png",
+		"img/Cloth/SlimeMikoTop_XLarge_TopStand.png",
 		"img/Cloth/TapedHands/SlimeKimono_FlatMedium_s0_Collar.png",
 		"img/Cloth/TapedHands/SlimeKimono_FlatMedium_s0_Cord.png",
 		"img/Cloth/TapedHands/SlimeKimono_FlatMedium_s0_Obi.png",
@@ -4602,24 +4805,6 @@
 		"img/Cloth/TapedHands/SlimeKimono_XLarge_s1l2p4_PatternOutline.png",
 		"img/Cloth/TapedHands/SlimeKimono_XLarge_s1l2p5_Pattern.png",
 		"img/Cloth/TapedHands/SlimeKimono_XLarge_s1l2p5_PatternOutline.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatMedium_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatMedium_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatMedium_Top.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatSmall_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatSmall_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_FlatSmall_Top.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Large_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Large_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Large_Top.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Normal_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Normal_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Normal_Top.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Small_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Small_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_Small_Top.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_XLarge_Cords.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_XLarge_Sleeves.png",
-		"img/Cloth/TapedHands/SlimeMikoTop_XLarge_Top.png",
 		"img/Cloth/Yoked/SlimeKimono_FlatMedium_s0_Collar.png",
 		"img/Cloth/Yoked/SlimeKimono_FlatMedium_s0_Cord.png",
 		"img/Cloth/Yoked/SlimeKimono_FlatMedium_s0_Obi.png",
@@ -5190,42 +5375,18 @@
 		"img/ClothLower/OverTheHead/SlimeHakama_Small_Hakama.png",
 		"img/ClothLower/OverTheHead/SlimeHakama_XLarge_Bow.png",
 		"img/ClothLower/OverTheHead/SlimeHakama_XLarge_Hakama.png",
-		"img/ClothLower/SlimeHakama_FlatMedium_Bow.png",
-		"img/ClothLower/SlimeHakama_FlatMedium_BowUnder.png",
-		"img/ClothLower/SlimeHakama_FlatMedium_Hakama.png",
-		"img/ClothLower/SlimeHakama_FlatMedium_HakamaUnder.png",
-		"img/ClothLower/SlimeHakama_FlatSmall_Bow.png",
-		"img/ClothLower/SlimeHakama_FlatSmall_BowUnder.png",
-		"img/ClothLower/SlimeHakama_FlatSmall_Hakama.png",
-		"img/ClothLower/SlimeHakama_FlatSmall_HakamaUnder.png",
-		"img/ClothLower/SlimeHakama_Large_Bow.png",
-		"img/ClothLower/SlimeHakama_Large_BowUnder.png",
-		"img/ClothLower/SlimeHakama_Large_Hakama.png",
-		"img/ClothLower/SlimeHakama_Large_HakamaUnder.png",
-		"img/ClothLower/SlimeHakama_Normal_Bow.png",
-		"img/ClothLower/SlimeHakama_Normal_BowUnder.png",
-		"img/ClothLower/SlimeHakama_Normal_Hakama.png",
-		"img/ClothLower/SlimeHakama_Normal_HakamaUnder.png",
-		"img/ClothLower/SlimeHakama_Small_Bow.png",
-		"img/ClothLower/SlimeHakama_Small_BowUnder.png",
-		"img/ClothLower/SlimeHakama_Small_Hakama.png",
-		"img/ClothLower/SlimeHakama_Small_HakamaUnder.png",
-		"img/ClothLower/SlimeHakama_XLarge_Bow.png",
-		"img/ClothLower/SlimeHakama_XLarge_BowUnder.png",
-		"img/ClothLower/SlimeHakama_XLarge_Hakama.png",
-		"img/ClothLower/SlimeHakama_XLarge_HakamaUnder.png",
-		"img/ClothLower/TapedHands/SlimeHakama_FlatMedium_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_FlatMedium_Hakama.png",
-		"img/ClothLower/TapedHands/SlimeHakama_FlatSmall_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_FlatSmall_Hakama.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Large_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Large_Hakama.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Normal_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Normal_Hakama.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Small_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_Small_Hakama.png",
-		"img/ClothLower/TapedHands/SlimeHakama_XLarge_Bow.png",
-		"img/ClothLower/TapedHands/SlimeHakama_XLarge_Hakama.png",
+		"img/ClothLower/SlimeHakama_FlatMedium_BowStand.png",
+		"img/ClothLower/SlimeHakama_FlatMedium_HakamaStand.png",
+		"img/ClothLower/SlimeHakama_FlatSmall_BowStand.png",
+		"img/ClothLower/SlimeHakama_FlatSmall_HakamaStand.png",
+		"img/ClothLower/SlimeHakama_Large_BowStand.png",
+		"img/ClothLower/SlimeHakama_Large_HakamaStand.png",
+		"img/ClothLower/SlimeHakama_Normal_BowStand.png",
+		"img/ClothLower/SlimeHakama_Normal_HakamaStand.png",
+		"img/ClothLower/SlimeHakama_Small_BowStand.png",
+		"img/ClothLower/SlimeHakama_Small_HakamaStand.png",
+		"img/ClothLower/SlimeHakama_XLarge_BowStand.png",
+		"img/ClothLower/SlimeHakama_XLarge_HakamaStand.png",
 		"img/ClothLower/Yoked/SlimeHakama_FlatMedium_Bow.png",
 		"img/ClothLower/Yoked/SlimeHakama_FlatMedium_Hakama.png",
 		"img/ClothLower/Yoked/SlimeHakama_FlatSmall_Bow.png",
@@ -5346,42 +5507,42 @@
 		"img/ClothOuter/OverTheHead/SlimeMikoTop_XLarge_Cords.png",
 		"img/ClothOuter/OverTheHead/SlimeMikoTop_XLarge_Sleeves.png",
 		"img/ClothOuter/OverTheHead/SlimeMikoTop_XLarge_Top.png",
-		"img/ClothOuter/SlimeMikoTop_FlatMedium_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_FlatMedium_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_FlatMedium_Top.png",
-		"img/ClothOuter/SlimeMikoTop_FlatSmall_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_FlatSmall_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_FlatSmall_Top.png",
-		"img/ClothOuter/SlimeMikoTop_Large_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_Large_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_Large_Top.png",
-		"img/ClothOuter/SlimeMikoTop_Normal_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_Normal_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_Normal_Top.png",
-		"img/ClothOuter/SlimeMikoTop_Small_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_Small_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_Small_Top.png",
-		"img/ClothOuter/SlimeMikoTop_XLarge_Cords.png",
-		"img/ClothOuter/SlimeMikoTop_XLarge_Sleeves.png",
-		"img/ClothOuter/SlimeMikoTop_XLarge_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatMedium_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatMedium_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatMedium_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatSmall_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatSmall_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_FlatSmall_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Large_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Large_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Large_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Normal_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Normal_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Normal_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Small_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Small_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_Small_Top.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_XLarge_Cords.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_XLarge_Sleeves.png",
-		"img/ClothOuter/TapedHands/SlimeMikoTop_XLarge_Top.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatMedium_TopUnder.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_FlatSmall_TopUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Large_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_Large_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Large_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_Large_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Large_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_Large_TopUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_Normal_TopUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Small_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_Small_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Small_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_Small_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_Small_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_Small_TopUnder.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_CordsStand.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_CordsUnder.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_SleevesStand.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_SleevesUnder.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_TopStand.png",
+		"img/ClothOuter/SlimeMikoTop_XLarge_TopUnder.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_FlatMedium_Cords.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_FlatMedium_Sleeves.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_FlatMedium_Top.png",
