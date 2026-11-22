@@ -34,6 +34,5 @@ Both run the same SCE and always load its newest version, so there's nothing to 
 - `sce.js` registers the clothes in `clothes/clothes.json` with the game (pictures, texts, option names, colour layer names), keeps them on when someone without SCE changes your outfit, and adds the wardrobe badge, the settings page and the update notices. Every game hook is guarded: a feature that meets a game it doesn't expect switches itself off for the session and the game carries on untouched.
 - `activities.js` adds the activities; `sce.js` loads it and lends it its guarded hooks.
 - `sce.user.js` is the loader: it adds the newest `sce.js` from GitHub Pages (jsDelivr as a backup) on every game load.
-- `tools/build-clothes.js` builds `clothes/` from `art/out/pieces.json` and the pictures in `art/out/<Group>/` (made from the layered drawings in `art/*.ora`; `art/out/` itself is not committed). Item names are saved in players' outfits: never rename one after release.
+- Item names are saved in players' outfits: never rename one after release.
 - Pictures are fetched with `sce.js`'s VERSION: raise it whenever pictures change. `news.json` holds each version's note.
-- `node test-smoke.js` (with `BC_ROOT` and `CHROME` set) checks it on a clean copy of the game.

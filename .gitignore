@@ -1,1 +1,4 @@
-art/out/Cloth/
+# working files kept off the public repo
+test-*.js
+tools/
+art/
