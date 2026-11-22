@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.6.9';
+	const VERSION = '0.7.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -172,6 +172,40 @@
 	}
 
 	/**
+	 * The game keeps every picture it has drawn in a store in the browser (Cache API "bc-images-v1"), under the game's
+	 * own path, and keeps using that copy. Pictures saved by an older SCE would stay. Once per SCE version, ours are
+	 * taken out of that store, so the current ones are fetched.
+	 */
+	function dropStoredPictures(/** @type {string[]} */ names) {
+		const KEY = 'sce.picturesFresh';
+		try {
+			if (localStorage.getItem(KEY) === VERSION || typeof caches === 'undefined' || !names.length) {
+				return;
+			}
+		} catch {
+			return;
+		}
+		const ours = new RegExp(`/(${names.map((n) => n.replace(/[^A-Za-z0-9]/g, '')).join('|')})[_.][^/]*$`);
+		caches
+			.open('bc-images-v1')
+			.then(async (store) => {
+				for (const req of await store.keys()) {
+					if (ours.test(new URL(req.url).pathname)) {
+						await store.delete(req);
+					}
+				}
+				try {
+					localStorage.setItem(KEY, VERSION);
+				} catch {
+					// blocked storage: tried again next time
+				}
+			})
+			.catch(() => {
+				// no store: nothing saved to drop
+			});
+	}
+
+	/**
 	 * Adds the pieces to their clothing groups, with their pictures and texts. A name the game already has is left
 	 * alone. If the game refuses one, the pieces stop there and the ones added are kept.
 	 * @param {any} data clothes/clothes.json
@@ -186,6 +220,7 @@
 		for (const f of data.images) {
 			images.add(f);
 		}
+		dropStoredPictures(data.pieces.map((/** @type {any} */ p) => p.name));
 		if (!hookPictures()) {
 			return;
 		}
@@ -448,6 +483,13 @@
 	/** Sends the game's requests for our pictures to the add-on's copies, and gives our buttons their pictures. */
 	function hookPictures() {
 		const ok = hookGame('CommonFetch', 10, FEATURE, (args, next) => {
+			// The game's picture store checks its saved copies for updates with a Request (keeping its "changed since"
+			// headers): that check must reach our files too, or a saved copy of an older picture is used forever.
+			if (typeof Request === 'function' && args[0] instanceof Request) {
+				// (its address is a full one: match from the Assets folder on)
+				const moved = picture(new URL(args[0].url).pathname.replace(/^.*?\/(?=Assets\/)/, ''));
+				return next(moved ? [new Request(moved, { headers: args[0].headers }), ...args.slice(1)] : args);
+			}
 			const url = typeof args[0] === 'string' ? picture(args[0]) : '';
 			return next(url ? [url, ...args.slice(1)] : args);
 		});
