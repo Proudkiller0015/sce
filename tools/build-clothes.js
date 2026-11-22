@@ -96,6 +96,8 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 			.map((o, i) => [o, i])
 			.filter(([o]) => !(o.HideLayers || []).some((/** @type {string} */ h) => layer.startsWith(h)))
 			.map(([, i]) => i);
+	/** @type {Set<string>} */
+	const posed = new Set();
 	const layers = p.Layer.map((/** @type {any} */ l) => {
 		if (!LAYER.test(l.Name) || !Number.isFinite(l.Left) || !Number.isFinite(l.Top) || !COLOR.test(l.Color || '')) {
 			fail(`piece ${p.Name}, layer ${l.Name}: needs a name, Left, Top and a #rrggbb colour`);
@@ -120,6 +122,9 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 			for (const f of fs.readdirSync(path.join(groupDir, dir)).filter((n) => file.test(n))) {
 				copy(path.join(groupDir, dir, f), path.join('img', p.Group, dir, f));
 				found++;
+				if (dir) {
+					posed.add(dir);
+				}
 			}
 		}
 		if (!found) {
@@ -217,6 +222,8 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 		}
 	}
 	const fits = Array.isArray(p.Fits) ? p.Fits.filter((/** @type {any} */ f) => LAYER.test(f)) : [];
+	// Poses with pictures of their own (a folder <Group>/<Pose>/): drawn from there, not hidden.
+	const poses = [...posed].filter((d) => LAYER.test(d)).sort();
 	/** @type {Record<string, string>} Layer names in the colour screen, by the game's key <Group><Asset><Layer>. */
 	const layerNames = Object.fromEntries(p.Layer.map((/** @type {any} */ l) => [`${p.Group}${p.Name}${l.Name}`, l.Text || words(l.Name)]));
 	/** @type {Record<string, string>} Colour group rows' names, by <Group><Asset><ColorGroup>. */
@@ -225,7 +232,7 @@ const pieces = source.pieces.map((/** @type {any} */ p) => {
 	);
 	/** Older colour orders by their length: { "9": [colour key per index] }, so colours saved then can be mapped by part. */
 	const colorHistory = p.ColorHistory && typeof p.ColorHistory === 'object' ? p.ColorHistory : {};
-	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, groupNames, colorHistory, fits };
+	return { name: p.Name, group: p.Group, description: p.Description, def, extended, texts, layerNames, groupNames, colorHistory, fits, poses };
 });
 
 const images = [...written].filter((f) => f.startsWith('img/')).sort();

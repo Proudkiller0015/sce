@@ -1,5 +1,10 @@
 [
 	{
+		"id": "0.8.0",
+		"title": "Slime Clothing Extension v0.8.0",
+		"text": "Kimono poses: the Kimono now stays on with the hands behind the back (box tie and elbows touching), with every sleeve choice, pattern and obi choice. More poses are coming."
+	},
+	{
 		"id": "0.7.1",
 		"title": "Slime Clothing Extension v0.7.1",
 		"text": "Kimono with No obi: the waist is now the kimono's own fabric, its lines and folds, instead of a flat block in the obi's shape. With the obi on nothing changes."

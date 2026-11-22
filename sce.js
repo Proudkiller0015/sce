@@ -12,7 +12,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '0.7.1';
+	const VERSION = '0.8.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -239,7 +239,7 @@
 			try {
 				w.AssetAdd(
 					group,
-					standingOnly(piece.def, group, piece.fits || []),
+					standingOnly(piece.def, group, piece.fits || [], piece.poses || []),
 					piece.extended ? { [piece.group]: { [piece.name]: withoutGameMessages(piece.extended) } } : undefined,
 					groupDef,
 				);
@@ -278,14 +278,15 @@
 	 * @param {any} source
 	 * @param {any} group the game's group (its pose mapping: how it draws in each pose)
 	 * @param {string[]} fits
+	 * @param {string[]} posed poses with pictures of their own (drawn from that pose's folder)
 	 */
-	function standingOnly(source, group, fits) {
+	function standingOnly(source, group, fits, posed = []) {
 		const def = JSON.parse(JSON.stringify(source));
 		const poses = (group && group.PoseMapping) || {};
 		def.PoseMapping = Object.fromEntries(
 			Object.entries(poses)
 				.filter(([, v]) => v !== '')
-				.map(([pose]) => [pose, fits.includes(pose) ? '' : 'Hide']),
+				.map(([pose]) => [pose, posed.includes(pose) ? pose : fits.includes(pose) ? '' : 'Hide']),
 		);
 		return def;
 	}
