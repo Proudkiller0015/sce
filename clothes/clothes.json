@@ -927,6 +927,10 @@
 				"Attribute": [
 					"HandheldItem"
 				],
+				"AllowActivity": [
+					"RubItem",
+					"SpankItem"
+				],
 				"DefaultColor": [
 					"#2E8BFF",
 					"#C9CBD1",

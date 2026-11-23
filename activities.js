@@ -178,6 +178,25 @@
 			other: { groups: ['ItemNeck'], label: 'Blade to Throat', text: 'SourceCharacter holds the humming blade of PronounPossessive lightsaber a hair from DestinationCharacter throat.' },
 		},
 		{
+			name: 'SCE_SaberSlash', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber'], react: [['Eyes', 'Surprised', 5]],
+			other: {
+				groups: ['ItemHead', 'ItemArms', 'ItemHands', 'ItemBreast', 'ItemTorso', 'ItemPelvis', 'ItemButt', 'ItemLegs', 'ItemFeet', 'ItemBoots'],
+				label: 'Slash',
+				text: {
+					ItemHead: 'SourceCharacter swings PronounPossessive lightsaber in a flat arc just over DestinationCharacter head, close enough to singe a few hairs.',
+					ItemArms: 'SourceCharacter slashes at DestinationCharacter arm; the blade hisses past and leaves a scorch mark on TargetPronounPossessive sleeve.',
+					ItemHands: 'SourceCharacter brings PronounPossessive lightsaber down at DestinationCharacter hands, forcing TargetPronounObject to snatch them back.',
+					ItemBreast: 'SourceCharacter slashes across DestinationCharacter chest, the humming blade passing a finger\'s width from TargetPronounPossessive clothes.',
+					ItemTorso: 'SourceCharacter cuts a fast diagonal slash across DestinationCharacter body, pulling the blade at the last instant.',
+					ItemPelvis: 'SourceCharacter sweeps PronounPossessive lightsaber low across DestinationCharacter waist, the heat of the blade washing over TargetPronounObject.',
+					ItemButt: 'SourceCharacter swats DestinationCharacter behind with the flat of PronounPossessive ignited blade, leaving a warm tingle.',
+					ItemLegs: 'SourceCharacter slashes low at DestinationCharacter legs, making TargetPronounObject hop back from the blade.',
+					ItemFeet: 'SourceCharacter sweeps PronounPossessive lightsaber along the floor at DestinationCharacter feet, scorching a line right in front of TargetPronounPossessive toes.',
+					ItemBoots: 'SourceCharacter sweeps PronounPossessive lightsaber along the floor at DestinationCharacter feet, scorching a line right in front of TargetPronounPossessive toes.',
+				},
+			},
+		},
+		{
 			name: 'SCE_SaberDisarm', image: 'preview:SlimeLightsaber', prereq: ['UseHands', 'SCE_HoldsLightsaber', 'SCE_TargetHoldsItem'], react: [['Eyes', 'Surprised', 5]],
 			other: { groups: ['ItemHands'], label: 'Disarm', text: 'SourceCharacter flicks PronounPossessive lightsaber and knocks the weapon out of DestinationCharacter hand.' },
 		},
