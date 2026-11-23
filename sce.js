@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.6.1';
+	const VERSION = '1.6.2';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -1538,9 +1538,20 @@
 		const CLOTHES_LIST = [LEFT, RESTORE[1] + 100, 300, 64];
 		/** @type {[number, number, number, number]} */
 		const ACTIVITY_LIST = [LEFT + 340, RESTORE[1] + 100, 300, 64];
+		/** @type {[number, number, number, number]} */
+		const CONTRIBUTE = [LEFT + 680, RESTORE[1] + 100, 240, 64];
+		/** @type {[number, number, number, number]} */
+		const CREDITS = [LEFT + 940, RESTORE[1] + 100, 200, 64];
+		/** @type {[number, number, number, number]} */
+		const DEVS = [LEFT + 1160, RESTORE[1] + 100, 240, 64];
+		/** @type {[number, number, number, number]} A small link to the repository, by the title. */
+		const REPO = [1560, 95, 220, 56];
+		/** @type {[number, number, number, number]} The contribute page's link to the guide. */
+		const GUIDE = [LEFT, 600, 480, 64];
 		/** What the last press of the restore button did. */
 		let restoreSaid = '';
-		/** @type {'main' | 'clothes' | 'activities'} The page shown: the settings, or one of the two lists. */
+		/** @type {'main' | 'clothes' | 'activities' | 'contribute' | 'credits' | 'devs'} The page shown: the settings, a
+		 * list or a small page. */
 		let page = 'main';
 		const mouseIn = (/** @type {number[]} */ r) => typeof w.MouseIn === 'function' && w.MouseIn(r[0], r[1], r[2], r[3]);
 		try {
@@ -1568,6 +1579,17 @@
 					const align = ctx.textAlign;
 					try {
 						ctx.textAlign = 'left';
+						if (page === 'contribute' || page === 'credits' || page === 'devs') {
+							drawInfo(page);
+							ctx.textAlign = 'center';
+							if (page === 'contribute') {
+								w.DrawButton(...GUIDE, 'Open the guide (GitHub)', 'White');
+							} else if (page === 'devs') {
+								w.DrawButton(...GUIDE, 'Open the repo page (GitHub)', 'White');
+							}
+							w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
+							return;
+						}
 						if (page !== 'main') {
 							drawList(page);
 							ctx.textAlign = 'center';
@@ -1597,6 +1619,10 @@
 						w.DrawButton(...RESTORE, 'Put my SCE clothes and crafts back', 'White');
 						w.DrawButton(...CLOTHES_LIST, 'Clothing list', 'White');
 						w.DrawButton(...ACTIVITY_LIST, 'Activity list', 'White');
+						w.DrawButton(...CONTRIBUTE, 'Contribute', 'White');
+						w.DrawButton(...CREDITS, 'Credits', 'White');
+						w.DrawButton(...DEVS, 'To BC devs', 'White');
+						w.DrawButton(...REPO, 'Repo page', 'White');
 						w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
 					} catch (e) {
 						problem('Settings', e);
@@ -1614,7 +1640,27 @@
 							}
 							return;
 						}
+						if ((page === 'contribute' || page === 'devs') && mouseIn(GUIDE)) {
+							openPage(page === 'contribute' ? `${REPO_URL}/blob/main/CONTRIBUTING.md` : REPO_URL);
+							return;
+						}
 						if (page !== 'main') {
+							return;
+						}
+						if (mouseIn(REPO)) {
+							openPage(REPO_URL);
+							return;
+						}
+						if (mouseIn(CONTRIBUTE)) {
+							page = 'contribute';
+							return;
+						}
+						if (mouseIn(CREDITS)) {
+							page = 'credits';
+							return;
+						}
+						if (mouseIn(DEVS)) {
+							page = 'devs';
 							return;
 						}
 						if (mouseIn(CLOTHES_LIST)) {
@@ -1644,6 +1690,42 @@
 		} catch (e) {
 			problem('Settings', e);
 		}
+	}
+
+	const REPO_URL = 'https://github.com/Proudkiller0015/sce';
+
+	/** Opens a page of SCE's repository in a new tab. */
+	function openPage(/** @type {string} */ url) {
+		w.open(url, '_blank', 'noopener');
+	}
+
+	/** The settings' small pages, drawn left-aligned under the title: how to contribute, the credits, and a word to
+	 * the game's developers. */
+	function drawInfo(/** @type {'contribute' | 'credits' | 'devs'} */ which) {
+		const pages = {
+			contribute: [
+				'- Contribute to SCE -',
+				'',
+				'SCE is open to contributors: new clothes, activities and fixes are welcome.',
+				'Everything in SCE is free for everyone, and stays that way.',
+				'How to take part, the rules and the checklist are in the guide on GitHub.',
+				'Items that suit the game may join Bondage Club itself, unless you ask otherwise.',
+				'AI-assisted work must be labelled, and carries an AI mark in the wardrobe.',
+			],
+			credits: ['- Credits -', '', `${ADDON_NAME} is made by SlimeQueenSamantha.`],
+			devs: [
+				'- To the BC devs -',
+				'',
+				"SCE adds its clothes, activities and slots with the game's own functions.",
+				'Every hook goes through bcModSdk and is guarded: a feature that meets',
+				"a game it doesn't expect switches itself off, and the game carries on.",
+				"It never changes the game's items or groups (ours: Slime..., ..._SCE).",
+				'Each release is tested with Echo, WCE, BCX, MBS and AEE, both load orders.',
+				'Trouble after a game update? Open a GitHub issue or contact Proudkiller0015.',
+			],
+		};
+		const lines = pages[which];
+		lines.forEach((line, i) => line && w.DrawTextFit(line, 500, 125 + i * 60, 1300, 'Black', 'Gray'));
 	}
 
 	/**
