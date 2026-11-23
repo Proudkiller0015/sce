@@ -821,6 +821,8 @@
 	let slotsTried = false;
 	/** @type {Map<string, any> | null} While set, the game's manual extended configs are collected here, not built. */
 	let manualCapture = null;
+	/** @type {Set<string>} <Slot>/<Item> copies left out: not tried again. */
+	const skippedCopies = new Set();
 
 	/**
 	 * Adds the slots once, unless the setting turns them off. Every hook they need goes in first: if one can't, no slot
@@ -862,6 +864,7 @@
 			return;
 		}
 		hookSlotLogos();
+		hookAddOnItems();
 	}
 
 	/** The slots' hooks; false when one can't go in (the feature is then off). */
@@ -1007,6 +1010,7 @@
 				after(copy);
 			} catch (e) {
 				unregister(group, def.Name);
+				skippedCopies.add(`${slot}/${def.Name}`);
 				problem(`${SLOTS_FEATURE}: ${slot}/${def.Name}`, e);
 			}
 		};
@@ -1014,17 +1018,20 @@
 			const asset = w.AssetGet('Female3DCG', source, def.Name);
 			const resolved = asset && w.AssetResolveCopyConfig.AssetDefinition({ ...def }, source, defs);
 			if (!resolved) {
+				skippedCopies.add(`${slot}/${def.Name}`);
 				continue;
 			}
 			const own = `${source}/${def.Name}`;
 			if (sourceConfigs[def.Name]) {
 				const config = w.AssetResolveCopyConfig.ExtendedItemConfig(asset, sourceConfigs[def.Name], w.AssetFemale3DCGExtended);
 				if (!config) {
+					skippedCopies.add(`${slot}/${def.Name}`);
 					continue;
 				}
 				configs[def.Name] = slotConfig(config, `${source}${def.Name}`);
 			} else if (asset.Extended && !manual.has(own)) {
 				// (an item with screens of its own, which a copy can't share)
+				skippedCopies.add(`${slot}/${def.Name}`);
 				continue;
 			}
 			const copyDef = { ...resolved, Value: 0, DynamicGroupName: asset.DynamicGroupName };
@@ -1032,14 +1039,7 @@
 			delete copyDef.CopyConfig;
 			add(copyDef, (copy) => {
 				copy.Description = asset.Description;
-				// Drawing functions the game finds by the item's group and name
-				for (const kind of ['BeforeDraw', 'AfterDraw', 'ScriptDraw']) {
-					const mine = `Assets${slot}${def.Name}${kind}`;
-					const theirs = w[`Assets${source}${def.Name}${kind}`];
-					if (copy[`Dynamic${kind}`] && typeof w[mine] !== 'function' && typeof theirs === 'function') {
-						w[mine] = theirs;
-					}
-				}
+				drawingFunctions(copy, slot, source);
 				if (manual.has(own)) {
 					w.AssetBuildExtended(copy, manual.get(own), extended, null, false);
 				}
@@ -1082,15 +1082,42 @@
 		}
 	}
 
-	/** The slots' names ("Upper Clothing 2", in the game's language) and those of the SCE pieces in them. */
+	/**
+	 * Gives a copy the drawing functions the game finds by the item's group and name, from the original's; returns
+	 * whether it has every one it needs.
+	 * @param {any} copy
+	 * @param {string} slot
+	 * @param {string} source
+	 */
+	function drawingFunctions(copy, slot, source) {
+		let all = true;
+		for (const kind of ['BeforeDraw', 'AfterDraw', 'ScriptDraw']) {
+			const mine = `Assets${slot}${copy.Name}${kind}`;
+			const theirs = w[`Assets${source}${copy.Name}${kind}`];
+			if (copy[`Dynamic${kind}`] && typeof w[mine] !== 'function') {
+				if (typeof theirs === 'function') {
+					w[mine] = theirs;
+				} else {
+					all = false;
+				}
+			}
+		}
+		return all;
+	}
+
+	/** The slots' names ("Upper Clothing 2", in the game's language) and their items' names, as the originals'. */
 	function slotTexts() {
 		for (const [slot, group] of slotGroups) {
-			const from = w.AssetGroupGet('Female3DCG', slotSource.get(slot));
-			group.Description = `${(from && from.Description) || slotSource.get(slot)} 2`;
+			const source = slotSource.get(slot) || '';
+			const from = w.AssetGroupGet('Female3DCG', source);
+			group.Description = `${(from && from.Description) || source} 2`;
 			for (const a of group.Asset) {
-				const piece = pieces.get(pieceKey(slotSource.get(slot) || '', a.Name));
+				const piece = pieces.get(pieceKey(source, a.Name));
+				const original = piece ? null : w.AssetGet('Female3DCG', source, a.Name);
 				if (piece) {
 					a.Description = piece.description;
+				} else if (original && typeof original.Description === 'string') {
+					a.Description = original.Description;
 				}
 			}
 		}
@@ -1109,6 +1136,176 @@
 		const rest = list.filter((g) => !ours.includes(g) && g !== OUTFIT_ROW);
 		const row = list.includes(OUTFIT_ROW) ? [OUTFIT_ROW] : [];
 		list.splice(0, list.length, ...rest, ...ours, ...row);
+	}
+
+	// ---- Other add-ons' items in the slots (setting slotAddOnItems): what an add-on adds to a group a slot copies
+	// (Echo's clothes, say) gets a copy in the slot, made from the item as the game built it, drawn from the same
+	// pictures. Each copy is checked before it is kept; one that fails is left out on its own, and the add-on's item,
+	// its definition and its group are only ever read.
+	const ADDON_ITEMS_FEATURE = 'Add-on items in slots';
+	/** @type {Map<string, string>} Group a slot copies -> the slot. */
+	const slotOfSource = new Map(SLOTS.map(([slot, source]) => [source, slot]));
+	/** @type {Map<string, any>} Extended configs other add-ons gave the game's AssetAdd, by <Group>/<Item>. */
+	const addOnConfigs = new Map();
+	/** @type {Map<string, string>} Per slot, how its group looked at the last look ("<count>/<last item>"). */
+	const addOnSeen = new Map();
+	let addOnLookQueued = false;
+
+	function hookAddOnItems() {
+		if (!slotGroups.size || !gameFunction('AssetAdd')) {
+			return;
+		}
+		hookGame('AssetAdd', 0, ADDON_ITEMS_FEATURE, (args, next) => {
+			const [group, def, extended] = args;
+			const name = def && typeof def === 'object' && typeof def.Name === 'string' ? def.Name : '';
+			// (an item a slot already has is never added to it twice)
+			if (group && name && slotGroups.get(group.Name) === group) {
+				return w.AssetGet('Female3DCG', group.Name, name) || next(args);
+			}
+			if (!group || !slotOfSource.has(group.Name)) {
+				return next(args);
+			}
+			const config = name && extended && typeof extended === 'object' && extended[group.Name] ? extended[group.Name][name] : null;
+			if (config && typeof config === 'object') {
+				addOnConfigs.set(`${group.Name}/${name}`, config);
+			}
+			const result = next(args);
+			// (copied once the add-on is done with it: it may name it or change it right after)
+			if (!addOnLookQueued) {
+				addOnLookQueued = true;
+				setTimeout(() => {
+					addOnLookQueued = false;
+					copyAddOnItems();
+				}, 0);
+			}
+			return result;
+		});
+		if (!settings.slotAddOnItems) {
+			return;
+		}
+		// Before an outfit is read (the game drops an item it doesn't know) and before the wardrobe lists the items.
+		for (const name of ['ServerAppearanceLoadFromBundle', 'AppearanceLoad']) {
+			hookGame(name, 0, ADDON_ITEMS_FEATURE, (args, next) => {
+				copyAddOnItems();
+				return next(args);
+			});
+		}
+		copyAddOnItems();
+		// (add-ons that add their items past the game's AssetAdd, Echo for one, are found at the next look)
+		setInterval(copyAddOnItems, 1000);
+	}
+
+	/** Copies into the slots what other add-ons added to their groups since the last look. */
+	function copyAddOnItems() {
+		if (!settings.slotAddOnItems || !working(ADDON_ITEMS_FEATURE)) {
+			return;
+		}
+		for (const [slot, group] of slotGroups) {
+			const from = w.AssetGroupGet('Female3DCG', slotSource.get(slot));
+			const list = from && Array.isArray(from.Asset) ? from.Asset : [];
+			const last = list[list.length - 1];
+			const seen = `${list.length}/${last && last.Name}`;
+			if (addOnSeen.get(slot) === seen) {
+				continue;
+			}
+			addOnSeen.set(slot, seen);
+			for (const asset of [...list]) {
+				const key = `${slot}/${asset && asset.Name}`;
+				if (!asset || typeof asset.Name !== 'string' || skippedCopies.has(key) || w.AssetGet('Female3DCG', slot, asset.Name)) {
+					continue;
+				}
+				try {
+					copyAddOnItem(slot, group, asset);
+				} catch (e) {
+					// (only this item is left out, and only once)
+					unregister(group, asset.Name);
+					skippedCopies.add(key);
+					problem(`${ADDON_ITEMS_FEATURE}: ${key}`, e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Copies one add-on item into its slot, from the item as the game built it: its own lists and layers cloned, free,
+	 * in no buy group, drawn from the original's pictures (same DynamicGroupName), its options built from the config
+	 * the add-on gave. Throws, with nothing of it kept, when a part of it is not as the game makes them.
+	 * @param {string} slot
+	 * @param {any} group the slot
+	 * @param {any} asset the add-on's item
+	 */
+	function copyAddOnItem(slot, group, asset) {
+		const source = asset.Group.Name;
+		const config = addOnConfigs.get(`${source}/${asset.Name}`) || (w.AssetFemale3DCGExtended[source] || {})[asset.Name] || null;
+		if (asset.Extended && !config) {
+			throw new Error('it opens screens of its own');
+		}
+		if (typeof asset.DynamicGroupName !== 'string' || !asset.DynamicGroupName) {
+			throw new Error('it has no picture folder');
+		}
+		/** @type {any} */
+		const copy = {};
+		for (const [k, v] of Object.entries(asset)) {
+			copy[k] = Array.isArray(v) ? [...v] : v && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype ? { ...v } : v;
+		}
+		copy.Group = group;
+		copy.Value = 0;
+		delete copy.BuyGroup;
+		copy.Layer = Array.isArray(asset.Layer) ? asset.Layer.map((/** @type {any} */ l) => (l && typeof l === 'object' ? { ...l, Asset: copy } : l)) : [];
+		if (!copy.Layer.length) {
+			throw new Error('it has no layers');
+		}
+		for (const l of copy.Layer) {
+			// (each layer as the game makes them, its picture at Assets/<family>/<folder>/<item>[_<layer>].png)
+			const drawable =
+				l &&
+				typeof l === 'object' &&
+				(l.Name === null || typeof l.Name === 'string') &&
+				typeof l.Priority === 'number' &&
+				Array.isArray(l.Alpha) &&
+				[l.PoseMapping, l.DrawingLeft, l.DrawingTop].every((o) => o && typeof o === 'object');
+			if (!drawable) {
+				throw new Error('a layer of it is not as the game makes them');
+			}
+		}
+		group.Asset.push(copy);
+		w.Asset.push(copy);
+		w.AssetMap.set(`${slot}/${copy.Name}`, copy);
+		if (config) {
+			const full = w.AssetResolveCopyConfig.ExtendedItemConfig(asset, config, w.AssetFemale3DCGExtended);
+			if (!full) {
+				throw new Error('its options could not be read');
+			}
+			w.AssetBuildExtended(copy, slotConfig(full, `${source}${asset.Name}`), w.AssetFemale3DCGExtended);
+			if (!copy.Archetype || !w.ExtendedItemGetData(copy, copy.Archetype)) {
+				throw new Error('its options did not build');
+			}
+		}
+		// Its drawing functions (the game finds them by group and name), guarded: one that fails on the copy is
+		// skipped from then on, and the item draws without it.
+		for (const kind of ['BeforeDraw', 'AfterDraw', 'ScriptDraw']) {
+			if (!copy[`Dynamic${kind}`]) {
+				continue;
+			}
+			const mine = `Assets${slot}${copy.Name}${kind}`;
+			const f = typeof w[mine] === 'function' ? w[mine] : w[`Assets${source}${copy.Name}${kind}`];
+			if (typeof f !== 'function') {
+				throw new Error(`it has no ${kind} function`);
+			}
+			const feature = `${ADDON_ITEMS_FEATURE}: ${slot}/${copy.Name}`;
+			w[mine] = (/** @type {any[]} */ ...a) => {
+				if (!working(feature)) {
+					return undefined;
+				}
+				try {
+					return f(...a);
+				} catch (e) {
+					problem(feature, e);
+					return undefined;
+				}
+			};
+		}
+		copy.Description = asset.Description;
 	}
 
 	// The SCE logo by each slot's name in the wardrobe: the row's label is drawn again, moved right of the logo.
@@ -1171,8 +1368,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean }} */
-	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -1314,15 +1511,18 @@
 		const EXIT = [1815, 75, 90, 90];
 		const LEFT = 500;
 		const TOP = 220;
-		const ROW = 90;
-		/** @type {[string, keyof typeof settings][]} */
+		const ROW = 80;
+		/** @type {[string, keyof typeof settings, (keyof typeof settings)?][]} Label, setting, and the setting it sits under. */
 		const boxes = [
 			['Add the SCE activities to the activity menu', 'activities'],
 			['Put dropped SCE crafts back by themselves (off: SCE asks first)', 'restoreCrafts'],
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
 			['Add the extra clothing slots (from the next reload)', 'extraSlots'],
+			["With other add-ons' items in them too (from the next reload)", 'slotAddOnItems', 'extraSlots'],
 		];
+		/** A box's left edge: one under another is set in. */
+		const boxLeft = (/** @type {any} */ under) => (under ? LEFT + 80 : LEFT);
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
 		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 640, 64];
 		/** @type {[number, number, number, number]} */
@@ -1366,12 +1566,18 @@
 							return;
 						}
 						w.DrawText(`- ${ADDON_NAME} - v${VERSION}`, LEFT, 125, 'Black', 'Gray');
-						boxes.forEach(([label, key], i) => w.DrawCheckbox(LEFT, TOP + i * ROW, 64, 64, label, settings[key]));
+						// (a box under another that is off is greyed out)
+						boxes.forEach(([label, key, under], i) =>
+							w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
+						);
 						const off = [...problems.keys()];
-						w.DrawText(
-							off.length ? `Switched off this session: ${off.join(', ')}` : 'Everything is working.',
+						// (fitted, and the first few named: items left out of the slots each have their own entry)
+						const named = off.length > 4 ? `${off.slice(0, 4).join(', ')} and ${off.length - 4} more` : off.join(', ');
+						w.DrawTextFit(
+							off.length ? `Switched off this session: ${named}` : 'Everything is working.',
 							LEFT,
 							TOP + boxes.length * ROW + 40,
+							1400,
 							off.length ? 'Red' : 'Black',
 							'Gray',
 						);
@@ -1415,8 +1621,8 @@
 							restoreSaid = back.length ? `Put back: ${back.join(', ')}` : 'Nothing was missing that you may put on now.';
 							return;
 						}
-						boxes.forEach(([, key], i) => {
-							if (mouseIn([LEFT, TOP + i * ROW, 64, 64])) {
+						boxes.forEach(([, key, under], i) => {
+							if (!(under && !settings[under]) && mouseIn([boxLeft(under), TOP + i * ROW, 64, 64])) {
 								settings[key] = !settings[key];
 								saveSettings();
 							}
