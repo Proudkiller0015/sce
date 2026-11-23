@@ -1,6 +1,7 @@
 // Slime Clothing Extension (SCE): a Bondage Club clothing add-on, Echo-style. It adds its own clothes to the game's
-// clothing groups, with their pictures and texts, and (when clothes.json lists outfits) a row at the end of the wardrobe
-// that puts on an outfit in one go. The clothes are listed in clothes/clothes.json.
+// clothing groups, with their pictures and texts, extra slots (a second copy of some clothing groups), and (when
+// clothes.json lists outfits) a row at the end of the wardrobe that puts on an outfit in one go. The clothes are listed
+// in clothes/clothes.json.
 // Pictures are fetched with the add-on's VERSION: raise it whenever pictures change, or players keep cached old ones.
 //
 // Every game hook goes through hookGame(): a feature that meets a game it doesn't expect is switched off for the
@@ -12,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.5.3';
+	const VERSION = '1.6.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -136,9 +137,11 @@
 	/** @type {Map<string, string>} Their colour group rows' names, by <Group><Asset><ColorGroup>. */
 	const groupNames = new Map();
 
-	/** Whether an asset is one of the add-on's. */
+	/** Whether an asset is one of the add-on's pieces, in its own group or in an extra slot. */
 	const isOurs = (/** @type {any} */ asset) =>
-		!!asset && !!asset.Group && pieces.has(pieceKey(asset.Group.Name, asset.Name));
+		!!asset && !!asset.Group && pieces.has(pieceKey(slotSource.get(asset.Group.Name) || asset.Group.Name, asset.Name));
+	/** Whether an asset is worn through SCE: one of its pieces, or anything in an extra slot (both unknown to others' games). */
+	const keptBySce = (/** @type {any} */ asset) => isOurs(asset) || (!!asset && !!asset.Group && slotGroups.has(asset.Group.Name));
 
 	/** Fetches the clothes and registers them, once the game has loaded its own items. */
 	function start() {
@@ -173,8 +176,13 @@
 					} catch (e) {
 						problem(FEATURE, e);
 					}
+					// (after the pieces, so the slots have them too)
+					addSlots();
 				})
-				.catch((e) => problem(FEATURE, e));
+				.catch((e) => {
+					problem(FEATURE, e);
+					addSlots();
+				});
 		}, 50);
 		markSelf();
 	}
@@ -582,8 +590,8 @@
 		return !!(c && c.OnlineSharedSettings && c.OnlineSharedSettings[ADDON_ID]);
 	}
 	/**
-	 * Keeps your clothes when someone without the add-on changes your outfit: their game doesn't know the pieces, so the
-	 * outfit it sends leaves them out, which the game would otherwise take as removing them.
+	 * Keeps your clothes when someone without the add-on changes your outfit: their game doesn't know the pieces or the
+	 * extra slots, so the outfit it sends leaves them out, which the game would otherwise take as removing them.
 	 */
 	function keepOnRemove(/** @type {any[]} */ args, /** @type {(a: any[]) => any} */ next) {
 		const [previous, params, isSwap] = args;
@@ -592,7 +600,7 @@
 		if (
 			isSwap !== true &&
 			previous &&
-			isOurs(previous.Asset) &&
+			keptBySce(previous.Asset) &&
 			c &&
 			typeof c.IsPlayer === 'function' &&
 			c.IsPlayer() &&
@@ -777,6 +785,388 @@
 		w.CharacterAppearanceHeaderTextTime = (typeof w.CommonTime === 'function' ? w.CommonTime() : Date.now()) + 6000;
 	}
 
+	// ---- Extra slots: a second copy of some clothing groups (as Echo has), so two tops, two pairs of socks or two sets
+	// of body markings can be worn at once. Each is the game's group under a new name, with the game's items and SCE's
+	// pieces, listed after every other group in the wardrobe with the SCE logo by its name.
+	const SLOTS_FEATURE = 'Extra slots';
+	/**
+	 * Each slot and the group it copies. The slot names are PERMANENT: they go out in chat and are saved in players'
+	 * outfits, so a renamed or removed slot drops whatever was worn in it. Only ever add to this list.
+	 * (At equal priority the game draws layers in group-name order, and "Cloth" sorts before "Cloth_SCE": a piece in a
+	 * slot is drawn just above the same piece in the group it copies.)
+	 * @type {[string, string][]}
+	 */
+	const SLOTS = [
+		['Cloth_SCE', 'Cloth'],
+		['ClothOuter_SCE', 'ClothOuter'],
+		['ClothLower_SCE', 'ClothLower'],
+		['ClothAccessory_SCE', 'ClothAccessory'],
+		['Suit_SCE', 'Suit'],
+		['SuitLower_SCE', 'SuitLower'],
+		['Bra_SCE', 'Bra'],
+		['Panties_SCE', 'Panties'],
+		['Socks_SCE', 'Socks'],
+		['Shoes_SCE', 'Shoes'],
+		['Gloves_SCE', 'Gloves'],
+		['Hat_SCE', 'Hat'],
+		['Necklace_SCE', 'Necklace'],
+		['BodyMarkings2_SCE', 'BodyMarkings'],
+	];
+	/** @type {Map<string, string>} Slot name -> the group it copies. */
+	const slotSource = new Map(SLOTS);
+	/** @type {Map<string, any>} The slots added this session (the game's group objects), by name. */
+	const slotGroups = new Map();
+	/** The group a slot copies, for a slot this session added; else ''. */
+	const sourceOf = (/** @type {any} */ name) => (slotGroups.has(name) && slotSource.get(name)) || '';
+	let slotsTried = false;
+	/** @type {Map<string, any> | null} While set, the game's manual extended configs are collected here, not built. */
+	let manualCapture = null;
+
+	/**
+	 * Adds the slots once, unless the setting turns them off. Every hook they need goes in first: if one can't, no slot
+	 * is added. A slot the game refuses is taken back out whole; the others stay.
+	 */
+	function addSlots() {
+		if (slotsTried || !settings.extraSlots) {
+			return;
+		}
+		slotsTried = true;
+		const missing =
+			['AssetGroupAdd', 'AssetAdd', 'AssetGroupGet', 'AssetGet', 'AssetBuildExtended', 'ExtendedItemManualRegister', 'AssetResolveCopyConfig.AssetDefinition', 'AssetResolveCopyConfig.ExtendedItemConfig'].find(
+				(f) => !gameFunction(f),
+			) || (Array.isArray(w.AssetFemale3DCG) && Array.isArray(w.AssetGroup) && w.AssetFemale3DCGExtended && w.AssetGroupMap instanceof Map ? '' : 'asset lists');
+		if (missing) {
+			problem(SLOTS_FEATURE, `the game has no ${missing}`);
+			return;
+		}
+		if (!hookSlots()) {
+			return;
+		}
+		try {
+			const manual = manualConfigs();
+			const defs = assetDefinitions();
+			for (const [slot, source] of SLOTS) {
+				try {
+					addSlot(slot, source, defs, manual);
+				} catch (e) {
+					removeSlot(slot);
+					problem(`${SLOTS_FEATURE}: ${slot}`, e);
+				}
+			}
+			slotTexts();
+		} catch (e) {
+			for (const [slot] of SLOTS) {
+				removeSlot(slot);
+			}
+			problem(SLOTS_FEATURE, e);
+			return;
+		}
+		hookSlotLogos();
+	}
+
+	/** The slots' hooks; false when one can't go in (the feature is then off). */
+	function hookSlots() {
+		// Owning an item, the owner's wardrobe rules and what hides it: all as in the group the slot copies.
+		hookGame('InventoryAvailable', 0, SLOTS_FEATURE, (args, next) => {
+			const source = sourceOf(args[2]);
+			return next(source ? [args[0], args[1], source, ...args.slice(3)] : args);
+		});
+		hookGame('AppearanceGroupAllowed', 0, SLOTS_FEATURE, (args, next) => {
+			const source = sourceOf(args[1]);
+			return next(source ? [args[0], source, ...args.slice(2)] : args);
+		});
+		hookGame('CharacterAppearanceVisible', 0, SLOTS_FEATURE, (args, next) => {
+			const source = sourceOf(args[2]);
+			const shown = next(args);
+			return source && shown ? next([args[0], args[1], source, ...args.slice(3)]) : shown;
+		});
+		// The wardrobe lists the slots after every other group, whenever the other add-ons added theirs. (Priority 1000:
+		// around the other add-ons' hooks, so this runs after whatever they add.)
+		hookGame('AppearanceLoad', 1000, SLOTS_FEATURE, (args, next) => {
+			const r = next(args);
+			slotsLast();
+			return r instanceof Promise ? r.then((v) => (slotsLast(), v)) : r;
+		});
+		// The game names every group from its text file, ours as missing; a language change does it again.
+		for (const name of ['AssetBuildDescription', 'TranslationAssetProcess']) {
+			hookGame(name, 0, SLOTS_FEATURE, (args, next) => {
+				const r = next(args);
+				slotTexts();
+				return r;
+			});
+		}
+		hookGame('AssetBuildExtended', 0, SLOTS_FEATURE, (args, next) => {
+			if (!manualCapture) {
+				return next(args);
+			}
+			const [asset, config] = args;
+			if (asset && asset.Group && config) {
+				manualCapture.set(`${asset.Group.Name}/${asset.Name}`, config);
+			}
+			return null;
+		});
+		return working(SLOTS_FEATURE);
+	}
+
+	/**
+	 * The extended configs the game builds by hand after loading (the Latex Catsuit's printed text), by <Group>/<Asset>:
+	 * its function is run with their building held back, to read them.
+	 * @returns {Map<string, any>}
+	 */
+	function manualConfigs() {
+		const found = new Map();
+		manualCapture = found;
+		try {
+			w.ExtendedItemManualRegister();
+		} catch {
+			// (without them, those items in the slots just lack their text options)
+		} finally {
+			manualCapture = null;
+		}
+		return found;
+	}
+
+	/**
+	 * The game's own item definitions by group and name, copied: resolving one that copies another's settings writes
+	 * into the definitions it reads.
+	 * @returns {Record<string, Record<string, any>>}
+	 */
+	function assetDefinitions() {
+		/** @type {Record<string, Record<string, any>>} */
+		const record = {};
+		for (const g of w.AssetFemale3DCG) {
+			if (!g || typeof g.Group !== 'string' || !Array.isArray(g.Asset)) {
+				continue;
+			}
+			const defs = (record[g.Group] = {});
+			for (const a of g.Asset) {
+				const def = typeof a === 'string' ? { Name: a } : a && typeof a.Name === 'string' ? { ...a } : null;
+				if (def) {
+					defs[def.Name] = def;
+				}
+			}
+		}
+		return record;
+	}
+
+	/**
+	 * An extended config for a copy, its texts still read from the original's keys (`key`: the original's group and
+	 * name), which the game would otherwise look for under the slot's name.
+	 * @param {any} config
+	 * @param {string} key
+	 */
+	function slotConfig(config, key) {
+		/** @type {Record<string, Record<string, string>>} The game's defaults per archetype. */
+		const defaults = {
+			typed: { Header: `${key}Select`, Option: key, Chat: `${key}Set`, Npc: key },
+			modular: { Header: `${key}Select`, Module: `${key}Module`, Option: `${key}Option`, Chat: `${key}Set` },
+			variableheight: { Chat: `${key}Set` },
+		};
+		return { ...config, DialogPrefix: { ...(defaults[config.Archetype] || {}), ...(config.DialogPrefix || {}) } };
+	}
+
+	/**
+	 * Adds one slot: the group copied under the slot's name, with a copy of each of the game's items in it and of each
+	 * SCE piece. The copies draw from the original's pictures and texts, cost what the originals do (InventoryAvailable
+	 * asks about the original), and are never sold: they sit in no buy group.
+	 * @param {string} slot
+	 * @param {string} source
+	 * @param {Record<string, Record<string, any>>} defs from assetDefinitions()
+	 * @param {Map<string, any>} manual from manualConfigs()
+	 */
+	function addSlot(slot, source, defs, manual) {
+		const from = w.AssetGroupGet('Female3DCG', source);
+		const fromDef = w.AssetFemale3DCG.find((/** @type {any} */ g) => g && g.Group === source);
+		if (!from || !fromDef || !Array.isArray(from.Asset)) {
+			throw new Error(`the game has no ${source} group as expected`);
+		}
+		if (w.AssetGroupGet('Female3DCG', slot)) {
+			throw new Error(`another add-on already has a ${slot} group`);
+		}
+		const groupDef = {
+			...fromDef,
+			Group: slot,
+			Asset: [],
+			// (never put on by default or at random; always removable; drawn at its group's height)
+			Default: false,
+			Random: false,
+			AllowNone: true,
+			Priority: from.DrawingPriority,
+			DynamicGroupName: from.DynamicGroupName || source,
+		};
+		const group = w.AssetGroupAdd('Female3DCG', groupDef);
+		slotGroups.set(slot, group);
+		/** @type {Record<string, any>} */
+		const configs = {};
+		const extended = { ...w.AssetFemale3DCGExtended, [slot]: configs };
+		const sourceConfigs = w.AssetFemale3DCGExtended[source] || {};
+		/** Adds one copy; a copy the game refuses is left out. */
+		const add = (/** @type {any} */ def, /** @type {(copy: any) => void} */ after) => {
+			try {
+				w.AssetAdd(group, def, extended, groupDef);
+				const copy = w.AssetGet('Female3DCG', slot, def.Name);
+				if (!copy) {
+					throw new Error(`${def.Name} was not added`);
+				}
+				after(copy);
+			} catch (e) {
+				unregister(group, def.Name);
+				problem(`${SLOTS_FEATURE}: ${slot}/${def.Name}`, e);
+			}
+		};
+		for (const def of Object.values(defs[source] || {})) {
+			const asset = w.AssetGet('Female3DCG', source, def.Name);
+			const resolved = asset && w.AssetResolveCopyConfig.AssetDefinition({ ...def }, source, defs);
+			if (!resolved) {
+				continue;
+			}
+			const own = `${source}/${def.Name}`;
+			if (sourceConfigs[def.Name]) {
+				const config = w.AssetResolveCopyConfig.ExtendedItemConfig(asset, sourceConfigs[def.Name], w.AssetFemale3DCGExtended);
+				if (!config) {
+					continue;
+				}
+				configs[def.Name] = slotConfig(config, `${source}${def.Name}`);
+			} else if (asset.Extended && !manual.has(own)) {
+				// (an item with screens of its own, which a copy can't share)
+				continue;
+			}
+			const copyDef = { ...resolved, Value: asset.Value === 0 ? 0 : -1, DynamicGroupName: asset.DynamicGroupName };
+			delete copyDef.BuyGroup;
+			delete copyDef.CopyConfig;
+			add(copyDef, (copy) => {
+				copy.Description = asset.Description;
+				// Drawing functions the game finds by the item's group and name
+				for (const kind of ['BeforeDraw', 'AfterDraw', 'ScriptDraw']) {
+					const mine = `Assets${slot}${def.Name}${kind}`;
+					const theirs = w[`Assets${source}${def.Name}${kind}`];
+					if (copy[`Dynamic${kind}`] && typeof w[mine] !== 'function' && typeof theirs === 'function') {
+						w[mine] = theirs;
+					}
+				}
+				if (manual.has(own)) {
+					w.AssetBuildExtended(copy, manual.get(own), extended, null, false);
+				}
+			});
+		}
+		for (const piece of pieces.values()) {
+			if (piece.group !== source || w.AssetGet('Female3DCG', slot, piece.name)) {
+				continue;
+			}
+			const def = standingOnly(piece.def, from, piece.fits || [], piece.poses || []);
+			def.DynamicGroupName = source;
+			if (piece.extended) {
+				configs[piece.name] = slotConfig(withoutGameMessages(piece.extended), `${source}${piece.name}`);
+			}
+			add(def, (copy) => {
+				copy.Description = piece.description;
+			});
+		}
+	}
+
+	/** Takes a slot this session added back out of the game's lists, with its items. */
+	function removeSlot(/** @type {string} */ slot) {
+		const group = slotGroups.get(slot);
+		if (!group) {
+			return;
+		}
+		slotGroups.delete(slot);
+		for (const a of [...(group.Asset || [])]) {
+			unregister(group, a.Name);
+		}
+		const i = w.AssetGroup.indexOf(group);
+		if (i >= 0) {
+			w.AssetGroup.splice(i, 1);
+		}
+		if (w.AssetGroupMap.get(slot) === group) {
+			w.AssetGroupMap.delete(slot);
+		}
+		if (w.AssetActivityMirrorGroups instanceof Map) {
+			w.AssetActivityMirrorGroups.delete(slot);
+		}
+	}
+
+	/** The slots' names ("Upper Clothing 2", in the game's language) and those of the SCE pieces in them. */
+	function slotTexts() {
+		for (const [slot, group] of slotGroups) {
+			const from = w.AssetGroupGet('Female3DCG', slotSource.get(slot));
+			group.Description = `${(from && from.Description) || slotSource.get(slot)} 2`;
+			for (const a of group.Asset) {
+				const piece = pieces.get(pieceKey(slotSource.get(slot) || '', a.Name));
+				if (piece) {
+					a.Description = piece.description;
+				}
+			}
+		}
+	}
+
+	/** Moves the slots to the end of the wardrobe's list of groups, before SCE's outfit row, in place. */
+	function slotsLast() {
+		const list = w.CharacterAppearanceGroups;
+		if (!Array.isArray(list)) {
+			return;
+		}
+		const ours = list.filter((g) => g && slotGroups.get(g.Name) === g);
+		if (!ours.length) {
+			return;
+		}
+		const rest = list.filter((g) => !ours.includes(g) && g !== OUTFIT_ROW);
+		const row = list.includes(OUTFIT_ROW) ? [OUTFIT_ROW] : [];
+		list.splice(0, list.length, ...rest, ...ours, ...row);
+	}
+
+	// The SCE logo by each slot's name in the wardrobe: the row's label is drawn again, moved right of the logo.
+	const LOGO_FEATURE = 'Slot logos';
+	/** Whether the wardrobe's rows are being drawn. */
+	let drawingWardrobe = false;
+	/**
+	 * The slot whose wardrobe row a back/next button is: at a row's height, labelled with that row's group. (Read as the
+	 * button is drawn, from the list the game is drawing: an add-on may show a filtered list, or move the buttons.)
+	 * @param {number} top
+	 * @param {any} label
+	 */
+	function slotRow(top, label) {
+		const groups = w.CharacterAppearanceGroups;
+		const i = (w.CharacterAppearanceOffset || 0) + (top - 145) / 95;
+		const group = Array.isArray(groups) && Number.isInteger(i) ? groups[i] : null;
+		return !!group && slotGroups.get(group.Name) === group && typeof label === 'string' && label.startsWith(`${group.Description}: `);
+	}
+	function hookSlotLogos() {
+		if (!slotGroups.size || !gameFunction('AppearanceRun') || !gameFunction('DrawBackNextButton')) {
+			return;
+		}
+		hookGame('AppearanceRun', 0, LOGO_FEATURE, (args, next) => {
+			drawingWardrobe = w.CharacterAppearanceMode === '' && !w.DialogFocusItem;
+			try {
+				return next(args);
+			} finally {
+				drawingWardrobe = false;
+			}
+		});
+		// The row's back/next button (1210, top, 400, 65): drawn without its label, then the logo past the back arrow and
+		// the label in the room left.
+		hookGame('DrawBackNextButton', 0, LOGO_FEATURE, (args, next) => {
+			const [left, top, width, height, label] = args;
+			if (!drawingWardrobe || !slotRow(top, label)) {
+				return next(args);
+			}
+			const result = next([left, top, width, height, '', ...args.slice(5)]);
+			const size = Math.round(height * 0.66);
+			const x = left + 22;
+			w.DrawImageResize(ICON, x, top + Math.round((height - size) / 2), size, size);
+			// (the game's canvas is a script-level `let`, not a window property)
+			const ctx = MainCanvas;
+			const align = ctx.textAlign;
+			ctx.textAlign = 'center';
+			// (clear of the logo and of the next arrow, as the game keeps its labels)
+			const textLeft = x + size + 4;
+			const textRight = left + width - 24;
+			w.DrawTextFit(label, (textLeft + textRight) / 2, top + height / 2 + 1, textRight - textLeft, 'Black');
+			ctx.textAlign = align;
+			return result;
+		});
+	}
+
 	// ---- Settings (Preferences > Extensions), the SCE badge on item tiles, update notes and the update-ready notice
 	const ICON = `${BASE}icon-64.png${FRESH}`;
 	const SETTINGS_KEY = 'sce.settings';
@@ -785,8 +1175,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean }} */
-	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -935,6 +1325,7 @@
 			['Put dropped SCE crafts back by themselves (off: SCE asks first)', 'restoreCrafts'],
 			['Tell me when an update is ready', 'updateReady'],
 			['Show what is new after an update', 'updateNotes'],
+			['Add the extra clothing slots (from the next reload)', 'extraSlots'],
 		];
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
 		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 640, 64];
@@ -1088,8 +1479,8 @@
 	}
 
 	// ---- Restore: if the game loads your outfit before SCE has added its clothes (a slow connection, the bookmark),
-	// it drops them as unknown. SCE keeps a copy of the SCE clothes you wear in your account's add-on settings and
-	// puts back what is missing once its clothes are in, into empty slots only.
+	// it drops them as unknown. SCE keeps a copy of the SCE clothes you wear (and of whatever is in the extra slots) in
+	// your account's add-on settings and puts back what is missing once its clothes are in, into empty slots only.
 	// Crafts the same way: the game drops a craft of an item it doesn't know yet at login, and erases it from your
 	// account the next time it saves your crafts. The copy keeps SCE's crafts (the game's own text for each) until they
 	// are back: by themselves, or with the settings button when the restoreCrafts setting is off.
@@ -1139,13 +1530,13 @@
 	}
 	/** The member number whose login the restore check has run for: before it, the outfit may be missing pieces, so no copy is taken. */
 	let restoredFor = 0;
-	/** Saves a copy of the SCE clothes you wear, when it changed. */
+	/** Saves a copy of the SCE clothes you wear and what is in the extra slots, when it changed. */
 	function saveOutfit() {
 		const p = w.Player;
 		if (!p || !p.MemberNumber || restoredFor !== p.MemberNumber || !p.ExtensionSettings || !Array.isArray(p.Appearance)) {
 			return;
 		}
-		const worn = p.Appearance.filter((/** @type {any} */ i) => i && isOurs(i.Asset)).map((/** @type {any} */ i) => ({
+		const worn = p.Appearance.filter((/** @type {any} */ i) => i && keptBySce(i.Asset)).map((/** @type {any} */ i) => ({
 			Group: i.Asset.Group.Name,
 			Name: i.Asset.Name,
 			Color: i.Color,
@@ -1161,7 +1552,8 @@
 		w.ServerPlayerExtensionSettingsSync(ADDON_ID);
 	}
 	/**
-	 * Puts back saved SCE clothes the outfit is missing, into empty slots that aren't blocked. Returns their names.
+	 * Puts back saved SCE clothes (and extra-slot items) the outfit is missing, into empty slots that aren't blocked.
+	 * Returns their names.
 	 * @returns {string[]}
 	 */
 	function restoreOutfit() {
@@ -1169,7 +1561,7 @@
 		const back = [];
 		for (const s of savedOutfit()) {
 			const asset = w.AssetGet('Female3DCG', s.Group, s.Name);
-			if (!asset || !isOurs(asset) || w.InventoryGet(p, s.Group)) {
+			if (!asset || !keptBySce(asset) || w.InventoryGet(p, s.Group)) {
 				continue;
 			}
 			if (
@@ -1502,6 +1894,7 @@
 		problems,
 		settings,
 		outfits: () => outfitChoices,
+		slots: slotGroups,
 		putBack: () => (working('Restore') ? putBack() : []),
 		kit: { hookGame, problem, working, gameFunction, settings, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
 	};
