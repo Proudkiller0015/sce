@@ -406,14 +406,18 @@
 			const name = `${asset.Group.Name}/${asset.Name}`;
 			if (!keysOf.has(name)) {
 				let keys = [];
-				try {
-					const data = w.ExtendedItemGetData(asset, 'modular');
-					keys = data && Array.isArray(data.modules) ? data.modules.map((m) => m.Key).filter((k) => typeof k === 'string') : [];
-				} catch {
-					keys = [];
-				}
-				if (!keys.length) {
-					return keys;
+				// (only items with options: the game warns in the console for any other, and this runs every frame)
+				if (asset.Archetype === 'modular') {
+					try {
+						const data = w.ExtendedItemGetData(asset, 'modular');
+						keys = data && Array.isArray(data.modules) ? data.modules.map((m) => m.Key).filter((k) => typeof k === 'string') : [];
+					} catch {
+						keys = [];
+					}
+					if (!keys.length) {
+						// (its options aren't built yet: asked again next time)
+						return keys;
+					}
 				}
 				keysOf.set(name, keys);
 			}
@@ -543,6 +547,13 @@
 			const url = typeof args[0] === 'string' ? picture(args[0]) : '';
 			return next(url ? [url, ...args.slice(1)] : args);
 		});
+		if (ok && gameFunction('ElementButton._ParseImage')) {
+			// (the pictures of the game's own buttons, such as the worn item's picture in its menu, skip CommonFetch)
+			hookGame('ElementButton._ParseImage', 0, 'Button pictures', (args, next) => {
+				const url = typeof args[1] === 'string' ? picture(args[1]) : '';
+				return next(url ? [args[0], url, ...args.slice(2)] : args);
+			});
+		}
 		if (ok && gameFunction('ElementButton.CreateForAsset')) {
 			hookGame('ElementButton.CreateForAsset', 0, 'Clothes buttons', (args, next) => {
 				const asset = args[1] && ('Asset' in args[1] ? args[1].Asset : args[1]);
