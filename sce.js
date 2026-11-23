@@ -1200,6 +1200,15 @@
 		if (!settings.slotAddOnItems || !working(ADDON_ITEMS_FEATURE)) {
 			return;
 		}
+		try {
+			lookForAddOnItems();
+		} catch (e) {
+			// (a game that changed under the lookup itself: the feature switches off instead of failing every second)
+			problem(ADDON_ITEMS_FEATURE, e);
+		}
+	}
+
+	function lookForAddOnItems() {
 		for (const [slot, group] of slotGroups) {
 			const from = w.AssetGroupGet('Female3DCG', slotSource.get(slot));
 			const list = from && Array.isArray(from.Asset) ? from.Asset : [];
