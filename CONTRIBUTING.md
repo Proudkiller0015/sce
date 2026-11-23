@@ -98,3 +98,9 @@ Contributors are credited in the update notes.
 ## Going into the game itself
 
 Any item that is vanilla-friendly, meaning it fits Bondage Club's own style and rules, is bound to be merged into Bondage Club itself eventually, unless you ask otherwise. Say so in your pull request if you want your item to stay in SCE only. Otherwise, by contributing one, you agree that it may be submitted to the game, with your credit kept. Items that only make sense with SCE stay in SCE.
+
+## Items from films, games and shows
+
+Fan-made items based on someone else's work are allowed, but they are the most likely to be taken down. SCE's Lightsaber, from Star Wars, is an example.
+
+Every item in SCE, these included, is made by fans and offered free of charge for players to enjoy. No item is sold, and none is meant to misuse or misrepresent anyone's work. If a rights holder (Disney, for example) wants an item removed, they are free to contact the maintainer, Proudkiller0015 on GitHub, or to open an issue on this repository, and it will be taken down.
