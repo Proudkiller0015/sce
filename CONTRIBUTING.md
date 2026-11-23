@@ -94,3 +94,7 @@ Many players move and scale their clothes in the game's Layering screen, so piec
 - The maintainer tests every pull request locally, in the game, with the other add-ons, before it goes live. Expect questions or small changes. SCE is in FUSAM, so nothing goes live on trust.
 
 Contributors are credited in the update notes.
+
+## Going into the game itself
+
+Any item that is vanilla-friendly, meaning it fits Bondage Club's own style and rules, is bound to be merged into Bondage Club itself eventually, unless you ask otherwise. Say so in your pull request if you want your item to stay in SCE only. Otherwise, by contributing one, you agree that it may be submitted to the game, with your credit kept. Items that only make sense with SCE stay in SCE.
