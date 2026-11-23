@@ -1547,7 +1547,7 @@
 		/** @type {[number, number, number, number]} A small link to the repository, by the title. */
 		const REPO = [1560, 95, 220, 56];
 		/** @type {[number, number, number, number]} The contribute page's link to the guide. */
-		const GUIDE = [LEFT, 600, 480, 64];
+		const GUIDE = [LEFT, 680, 480, 64];
 		/** What the last press of the restore button did. */
 		let restoreSaid = '';
 		/** @type {'main' | 'clothes' | 'activities' | 'contribute' | 'credits' | 'devs'} The page shown: the settings, a
@@ -1720,6 +1720,7 @@
 				'Every hook goes through bcModSdk and is guarded: a feature that meets',
 				"a game it doesn't expect switches itself off, and the game carries on.",
 				"It never changes the game's items or groups (ours: Slime..., ..._SCE).",
+				'Vanilla-friendly SCE items are meant to be merged into the game down the line.',
 				'Each release is tested with Echo, WCE, BCX, MBS and AEE, both load orders.',
 				'Trouble after a game update? Open a GitHub issue or contact Proudkiller0015.',
 			],
