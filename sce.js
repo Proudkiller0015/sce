@@ -866,11 +866,7 @@
 
 	/** The slots' hooks; false when one can't go in (the feature is then off). */
 	function hookSlots() {
-		// Owning an item, the owner's wardrobe rules and what hides it: all as in the group the slot copies.
-		hookGame('InventoryAvailable', 0, SLOTS_FEATURE, (args, next) => {
-			const source = sourceOf(args[2]);
-			return next(source ? [args[0], args[1], source, ...args.slice(3)] : args);
-		});
+		// The owner's wardrobe rules and what hides it: as in the group the slot copies. (Everything in a slot is free.)
 		hookGame('AppearanceGroupAllowed', 0, SLOTS_FEATURE, (args, next) => {
 			const source = sourceOf(args[1]);
 			return next(source ? [args[0], source, ...args.slice(2)] : args);
@@ -967,8 +963,8 @@
 
 	/**
 	 * Adds one slot: the group copied under the slot's name, with a copy of each of the game's items in it and of each
-	 * SCE piece. The copies draw from the original's pictures and texts, cost what the originals do (InventoryAvailable
-	 * asks about the original), and are never sold: they sit in no buy group.
+	 * SCE piece. The copies draw from the original's pictures and texts and are free for everyone (Value 0), never in
+	 * a buy group or the shop.
 	 * @param {string} slot
 	 * @param {string} source
 	 * @param {Record<string, Record<string, any>>} defs from assetDefinitions()
@@ -1031,7 +1027,7 @@
 				// (an item with screens of its own, which a copy can't share)
 				continue;
 			}
-			const copyDef = { ...resolved, Value: asset.Value === 0 ? 0 : -1, DynamicGroupName: asset.DynamicGroupName };
+			const copyDef = { ...resolved, Value: 0, DynamicGroupName: asset.DynamicGroupName };
 			delete copyDef.BuyGroup;
 			delete copyDef.CopyConfig;
 			add(copyDef, (copy) => {
