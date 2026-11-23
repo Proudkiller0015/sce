@@ -86,6 +86,14 @@ Many players move and scale their clothes in the game's Layering screen, so piec
    SCE loads its clothes from next to `sce.js`, so your fork's clothes are used.
 4. Log in and go through the checklist above. Then do it once more with Echo, WCE, BCX, MBS and AEE switched on in FUSAM.
 
+## AI-assisted work
+
+SCE wants to reward artists, so hand-made art comes first. AI-assisted work isn't banned, but it has to be labelled:
+
+- Mark it clearly in your pull request: say which parts were made or helped by AI.
+- Don't present AI-made work as an artist's own work.
+- The maintainer may decline AI-assisted work, even when it's labelled.
+
 ## Pull requests
 
 - One piece or one fix per pull request, on its own branch.
