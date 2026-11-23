@@ -94,6 +94,8 @@ SCE wants to reward artists, so hand-made art comes first. AI-assisted work isn'
 - Don't present AI-made work as an artist's own work.
 - The maintainer may decline AI-assisted work, even when it's labelled.
 
+AI-assisted items from contributors carry a small **AI** mark on their wardrobe tile, so players know how they were made.
+
 ## Pull requests
 
 - One piece or one fix per pull request, on its own branch.
