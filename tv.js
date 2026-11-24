@@ -317,6 +317,41 @@
 
 	/** The TV shown full screen for you (its character's member number), or ''. */
 	let fullKey = '';
+	/**
+	 * The TV popped out for you into a small player of its own (its character's member number), or ''. It stays where you
+	 * put it, whatever the game shows (someone's profile, a menu, another part of the map), while its character is in the
+	 * room with the TV on; you move it by dragging it and size it by its corner.
+	 */
+	let popKey = '';
+	const POP_KEY = 'sce.tv.pop';
+	/** Where the popped-out player sits: left, top and width in page pixels from the TV layer's corner. */
+	function popPlace() {
+		try {
+			const v = JSON.parse(localStorage.getItem(POP_KEY) || 'null');
+			if (v && [v.x, v.y, v.w].every(Number.isFinite)) {
+				return v;
+			}
+		} catch {
+			// (unreadable: the default place)
+		}
+		return { x: 16, y: 16, w: 360 };
+	}
+	function savePopPlace(/** @type {{ x: number, y: number, w: number }} */ v) {
+		try {
+			localStorage.setItem(POP_KEY, JSON.stringify({ x: Math.round(v.x), y: Math.round(v.y), w: Math.round(v.w) }));
+		} catch {
+			// (blocked storage: it stays there until the page reloads)
+		}
+	}
+	/** The player's height for its width (a 16:9 screen in its frame). */
+	const popHeight = (/** @type {number} */ wd) => (wd - 8) * (9 / 16) + 10;
+	/** The place kept inside the layer (at least a corner of it always reachable), at least 200 px wide. */
+	function clampPop(/** @type {{ x: number, y: number, w: number }} */ v, /** @type {HTMLElement} */ box) {
+		const W = box.clientWidth || 1;
+		const H = box.clientHeight || 1;
+		const wd = Math.max(200, Math.min(v.w, W, (H - 10) * (16 / 9) + 8));
+		return { x: Math.max(0, Math.min(v.x, W - wd)), y: Math.max(0, Math.min(v.y, H - popHeight(wd))), w: wd };
+	}
 	// Esc closes full screen (caught before the game, which takes every Esc for itself).
 	w.addEventListener(
 		'keydown',
@@ -450,6 +485,56 @@
 			fullKey = fullKey === key ? '' : key;
 		});
 		full.style.right = '4px';
+		// (a small player of its own, moved anywhere: like a browser's picture in picture)
+		const pop = small('sce-tv-pop', () => {
+			popKey = popKey === key ? '' : key;
+			if (fullKey === key) {
+				fullKey = '';
+			}
+		});
+		const grip = document.createElement('div');
+		grip.className = 'sce-tv-grip';
+		grip.title = 'Drag to size it';
+		grip.style.cssText =
+			'position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;pointer-events:auto;' +
+			'background:linear-gradient(135deg,transparent 50%,#fffa 50%,#fffa 60%,transparent 60%,transparent 72%,#fffa 72%,#fffa 82%,transparent 82%);';
+		// Dragging the popped-out player moves it; dragging its corner sizes it. Only while it's popped out.
+		const drag = (/** @type {PointerEvent} */ e, /** @type {boolean} */ sizing) => {
+			const s = shown.get(key);
+			if (!s || !s.pop || !layer || e.button !== 0) {
+				return;
+			}
+			const t = /** @type {HTMLElement} */ (e.target);
+			if (!sizing && t.closest('button, input, .sce-tv-bar, .sce-tv-grip')) {
+				return;
+			}
+			e.preventDefault();
+			e.stopPropagation();
+			const box = layer;
+			const start = { x: e.clientX, y: e.clientY, place: clampPop(popPlace(), box) };
+			const move = (/** @type {PointerEvent} */ m) => {
+				const dx = m.clientX - start.x;
+				const dy = m.clientY - start.y;
+				const v = sizing ? { ...start.place, w: start.place.w + dx } : { ...start.place, x: start.place.x + dx, y: start.place.y + dy };
+				savePopPlace(clampPop(v, box));
+			};
+			const up = () => {
+				w.removeEventListener('pointermove', move, true);
+				w.removeEventListener('pointerup', up, true);
+			};
+			w.addEventListener('pointermove', move, true);
+			w.addEventListener('pointerup', up, true);
+		};
+		el.addEventListener('pointerdown', (e) => drag(e, false));
+		grip.addEventListener('pointerdown', (e) => drag(e, true));
+		for (const type of ['mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'wheel']) {
+			// (clicks on the popped-out player never reach the game under it)
+			el.addEventListener(type, (e) => {
+				if (shown.get(key)?.pop) {
+					e.stopPropagation();
+				}
+			});
+		}
 		// (hides every TV for you alone, for anyone who never finds the setting)
 		const off = small('sce-tv-off', () => setTVs(false));
 		off.style.right = '64px';
@@ -464,7 +549,7 @@
 			}
 		});
 		powerButton.textContent = '⏻';
-		ui.append(powerButton, off, mute, full, bar);
+		ui.append(powerButton, off, mute, pop, full, bar, grip);
 		el.append(screen, led, ui);
 		return el;
 	}
@@ -802,12 +887,25 @@
 		}
 		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && ui.matches(':hover'));
 		// (a small TV, as on the map, shows only ⛶: full screen has every control)
-		const tiny = !s.full && r.width < 170;
+		const tiny = !s.full && !s.pop && r.width < 170;
 		for (const cls of ['.sce-tv-power', '.sce-tv-off', '.sce-tv-mute']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && tiny) {
 				b.hidden = true;
 			}
+		}
+		// (the buttons showing sit side by side from the right: ⛶, ⧉, 🔊, 🙈, ⏻)
+		let right = s.full ? 10 : 4;
+		for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
+			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
+			if (b && !b.hidden) {
+				b.style.right = `${right}px`;
+				right += s.full ? 34 : 30;
+			}
+		}
+		const grip = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-grip'));
+		if (grip) {
+			grip.hidden = !s.pop;
 		}
 		ui.style.opacity = show ? '1' : '0';
 		ui.style.visibility = show ? 'visible' : 'hidden';
@@ -822,7 +920,9 @@
 		const may = mayPower(C, s.item);
 		bar.hidden = tiny || !s.media || st.mode === 'off';
 		bar.style.bottom = s.full ? '14px' : '6px';
-		bar.style.left = bar.style.right = s.full ? '14px' : '6px';
+		// (room for the popped-out player's corner grip)
+		bar.style.right = s.full ? '14px' : s.pop ? '20px' : '6px';
+		bar.style.left = s.full ? '14px' : '6px';
 		bar.style.fontSize = s.full ? '13px' : '11px';
 		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
 		const time = /** @type {HTMLElement} */ (bar.querySelector('.sce-tv-time'));
@@ -857,6 +957,12 @@
 		const full = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-full'));
 		label(mute, off ? '🔇' : '🔊', off ? 'This TV is muted for you: click to hear it' : 'Mute this TV for you');
 		label(full, s.full ? '✕' : '⛶', s.full ? 'Close full screen (Esc)' : 'Full screen (for you)');
+		const pop = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-pop'));
+		label(pop, s.pop ? '↩' : '⧉', s.pop ? 'Put it back on the character' : 'Pop out: a small player you can move anywhere (for you)');
+		if (pop) {
+			pop.hidden = !s.on && !s.pop;
+			pop.style.top = s.full ? '10px' : '4px';
+		}
 		for (const b of [mute, full]) {
 			if (b) {
 				b.hidden = !s.media && !s.full;
@@ -873,19 +979,16 @@
 			label(powerButton, '⏻', s.on ? 'Turn this TV off (for everyone)' : 'Turn this TV on again (for everyone)');
 			powerButton.hidden = !prop.Text || !mayPower(ownerOf(s.key), s.item);
 			powerButton.style.top = s.full ? '10px' : '4px';
-			powerButton.style.right = s.full ? '112px' : '94px';
+
 			powerButton.style.color = s.on ? '#fff' : '#f66';
 		}
 		const offButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-off'));
 		if (offButton) {
 			offButton.hidden = !(s.item.Property || {}).Text && !s.full;
 			offButton.style.top = s.full ? '10px' : '4px';
-			offButton.style.right = s.full ? '78px' : '64px';
+
 		}
-		if (mute && full) {
-			mute.style.right = s.full ? '44px' : '34px';
-			full.style.right = s.full ? '10px' : '4px';
-		}
+
 		const v = s.fresh === false ? 0 : volume(s.key);
 		if (!s.media || s.volume === v) {
 			return;
@@ -938,17 +1041,36 @@
 			} else {
 				fullKey = '';
 			}
+			// The popped-out TV stays while its character is in the room wearing it, on whatever screen (a profile, a
+			// menu, the wardrobe); then it goes.
+			const popTV = popKey ? shown.get(popKey) : null;
+			if (popTV) {
+				const inRoom = typeof w.ServerPlayerIsInChatRoom === 'function' ? w.ServerPlayerIsInChatRoom() : w.CurrentScreen === 'ChatRoom';
+				const C = inRoom ? ownerOf(popKey) : null;
+				const item = C && !blocked(C) ? tvOf(C) : null;
+				if (item && (item.Property || {}).Text) {
+					popTV.item = item;
+					popTV.seen = now;
+				} else {
+					popKey = '';
+				}
+			} else {
+				popKey = '';
+			}
 			if (at) {
-				// (over the game's own page elements while a TV fills the screen)
-				at.layer.style.zIndex = fullKey ? '2147483000' : '';
+				// (over the game's own page elements while a TV fills the screen or floats over it)
+				at.layer.style.zIndex = fullKey || popKey ? '2147483000' : '';
 			}
 			for (const [key, s] of shown) {
 				s.full = key === fullKey;
-				const fresh = s.full || now - s.seen < 400;
+				s.pop = key === popKey && !s.full;
+				const fresh = s.full || s.pop || now - s.seen < 400;
 				s.fresh = fresh;
 				const owner = fresh ? null : ownerOf(key);
 				const gone =
 					!fresh && (w.CurrentScreen !== 'ChatRoom' || !tvOf(owner) || !(tvOf(owner).Property || {}).Text || blocked(owner));
+				// (only the popped-out TV plays outside the chat room screen)
+				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop;
 				if (!at || gone || now - s.seen > KEEP_MS) {
 					s.el?.remove();
 					shown.delete(key);
@@ -962,10 +1084,24 @@
 				if (s.playing !== showing(s)) {
 					fill(s);
 				}
-				s.el.style.visibility = fresh ? 'visible' : 'hidden';
+				s.el.style.visibility = fresh && !away ? 'visible' : 'hidden';
 				if (s.full) {
 					// Fills the game's screen, on top of everything; clicks on it don't reach the game.
 					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '2', pointerEvents: 'auto', borderRadius: '0' });
+				} else if (s.pop) {
+					// Its own little player, where you put it, over everything; dragged to move, its corner to size.
+					const v = clampPop(popPlace(), at.layer);
+					Object.assign(s.el.style, {
+						left: `${v.x}px`,
+						top: `${v.y}px`,
+						width: `${v.w}px`,
+						height: `${popHeight(v.w)}px`,
+						padding: '4px 4px 6px',
+						zIndex: '3',
+						pointerEvents: 'auto',
+						borderRadius: '8px',
+						cursor: 'move',
+					});
 				} else {
 					const [x0, y0, x1, y1] = s.box.map((v) => v * at.k);
 					const bezel = Math.max(2, TV.bezel * s.scale * at.k);
@@ -978,6 +1114,7 @@
 						zIndex: '',
 						pointerEvents: 'none',
 						borderRadius: '6px',
+						cursor: '',
 					});
 				}
 				sound(s);
@@ -1222,5 +1359,5 @@
 	})) {
 		requestAnimationFrame(frame);
 	}
-	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey };
+	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey };
 })();
