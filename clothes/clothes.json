@@ -3196,6 +3196,78 @@
 			"colorHistory": {},
 			"fits": [],
 			"poses": []
+		},
+		{
+			"name": "SlimeBoombox",
+			"group": "ItemHandheld",
+			"description": "Boombox",
+			"def": {
+				"Name": "SlimeBoombox",
+				"ParentGroup": "",
+				"Priority": 46,
+				"Value": 0,
+				"Random": false,
+				"Attribute": [
+					"HandheldItem"
+				],
+				"DefaultColor": [
+					"#2B2B31",
+					"#4A4A52",
+					"#C9C9CF"
+				],
+				"Layer": [
+					{
+						"Name": "Body",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#2B2B31"
+						]
+					},
+					{
+						"Name": "Speakers",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#4A4A52"
+						]
+					},
+					{
+						"Name": "Trim",
+						"Left": 0,
+						"Top": 0,
+						"Priority": 46,
+						"AllowColorize": true,
+						"Color": [
+							"#C9C9CF"
+						]
+					}
+				]
+			},
+			"extended": {
+				"Archetype": "noarch",
+				"BaselineProperty": {
+					"Text": "",
+					"Text2": "",
+					"Text3": ""
+				}
+			},
+			"texts": {
+				"ItemHandheldSlimeBoomboxSelect": "Choose what the boombox plays"
+			},
+			"layerNames": {
+				"ItemHandheldSlimeBoomboxBody": "Body",
+				"ItemHandheldSlimeBoomboxSpeakers": "Speakers",
+				"ItemHandheldSlimeBoomboxTrim": "Trim"
+			},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [],
+			"poses": []
 		}
 	],
 	"images": [
@@ -10125,6 +10197,9 @@
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Cords.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Sleeves.png",
 		"img/ClothOuter/Yoked/SlimeMikoTop_XLarge_Top.png",
+		"img/ItemHandheld/SlimeBoombox_Body.png",
+		"img/ItemHandheld/SlimeBoombox_Speakers.png",
+		"img/ItemHandheld/SlimeBoombox_Trim.png",
 		"img/ItemHandheld/SlimeGohei_Paper.png",
 		"img/ItemHandheld/SlimeGohei_Stick.png",
 		"img/ItemHandheld/SlimeLightsaber_Button.png",

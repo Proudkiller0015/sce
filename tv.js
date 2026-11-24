@@ -27,6 +27,19 @@
 	const FEATURE = 'TV';
 	const GROUP = 'ItemMisc';
 	const NAME = 'SlimeTV';
+	/**
+	 * The boombox: the same player for sound (a music file or YouTube's sound), held in the hands (ItemHandheld). The game
+	 * draws it (its pictures are SCE's); its controls sit over its drawing. Its key on screen is "<member>:bb".
+	 */
+	const BB_GROUP = 'ItemHandheld';
+	const BB_NAME = 'SlimeBoombox';
+	/** Where the boombox is on the 500 x 1000 character picture, handle included (sce-art tools/boombox_build.py). */
+	const BB_BOX = [148, 436, 352, 600];
+	const isBB = (/** @type {string} */ key) => key.endsWith(':bb');
+	/** The member a TV or boombox key belongs to. */
+	const memberOf = (/** @type {string} */ key) => key.replace(/:bb$/, '');
+	/** "TV" or "boombox", for what's written. */
+	const thing = (/** @type {string} */ key) => (isBB(key) ? 'boombox' : 'TV');
 	/** The TV at 100%, in the character's pixels (the canvas is 500 wide): it just fits, from the shoulders down. */
 	const TV = { width: 490, x: 250, y: 370, bezel: 9 };
 	const SIZE = { min: 20, max: 140, step: 10 };
@@ -123,8 +136,8 @@
 	/** Whether a TV on screen may play for you. */
 	function allowed(/** @type {any} */ s) {
 		const link = String((s.item.Property || {}).Text || '');
-		const choice = always()[s.key];
-		if (s.key === myKey() || choice === 'on') {
+		const choice = always()[memberOf(s.key)];
+		if (memberOf(s.key) === myKey() || choice === 'on') {
 			return true;
 		}
 		return choice !== 'off' && (!(settings && settings.tvsAsk !== false) || watching.has(`${s.key}|${link}`));
@@ -132,7 +145,7 @@
 	/** What a TV shows now: its link, when it started, and whether you chose to watch it (a change fills it again). */
 	const showing = (/** @type {any} */ s) => {
 		const prop = s.item.Property || {};
-		return `${prop.Text || ''}|${prop.Text2 === 'off'}|${allowed(s)}|${always()[s.key] || ''}`;
+		return `${prop.Text || ''}|${prop.Text2 === 'off'}|${allowed(s)}|${always()[memberOf(s.key)] || ''}`;
 	};
 	/** Shows or hides every TV for you (the same switch as in SCE's settings), saying how to undo it. */
 	function setTVs(/** @type {boolean} */ on) {
@@ -175,14 +188,14 @@
 			const v = url.searchParams.get('v') || (/^\/(?:shorts|live|embed|v)\/([^/?#]+)/.exec(url.pathname) || [])[1] || '';
 			return id.test(v) ? { yt: v } : null;
 		}
-		return /\.(mp4|webm|m4v|mov|ogv)$/i.test(url.pathname) ? { file: url.href } : null;
+		return /\.(mp4|webm|m4v|mov|ogv|mp3|m4a|aac|ogg|oga|opus|wav|flac)$/i.test(url.pathname) ? { file: url.href } : null;
 	}
 
 	// ---- The item
-	/** The TV a character has on, or null. */
-	function tvOf(/** @type {any} */ C) {
-		const item = C && typeof w.InventoryGet === 'function' ? w.InventoryGet(C, GROUP) : null;
-		return item && item.Asset && item.Asset.Name === NAME ? item : null;
+	/** The TV a character has on (or their boombox), or null. */
+	function tvOf(/** @type {any} */ C, bb = false) {
+		const item = C && typeof w.InventoryGet === 'function' ? w.InventoryGet(C, bb ? BB_GROUP : GROUP) : null;
+		return item && item.Asset && item.Asset.Name === (bb ? BB_NAME : NAME) ? item : null;
 	}
 	/** The TV's size (%) and how far it is moved, from Text3. */
 	function placeOf(/** @type {any} */ item) {
@@ -211,7 +224,8 @@
 			return;
 		}
 		const item = tvOf(C);
-		if (!item || !tvsOn() || w.CurrentScreen !== 'ChatRoom' || typeof Zoom !== 'number') {
+		const bb = tvOf(C, true);
+		if ((!item && !bb) || !tvsOn() || w.CurrentScreen !== 'ChatRoom' || typeof Zoom !== 'number') {
 			return;
 		}
 		if (blocked(C)) {
@@ -229,21 +243,29 @@
 		const scale = ratio * Zoom;
 		const toX = (/** @type {number} */ ax) => X + xOff * Zoom + ax * scale;
 		const toY = (/** @type {number} */ ay) => Y + (cut ? 0 : yOff) * Zoom + (ay + (cut ? yOff / ratio : 0)) * scale;
+		const key0 = String(C.MemberNumber ?? `npc${C.CharacterID}`);
+		/** (the same record every frame: the player's callbacks hold on to it) */
+		const note = (/** @type {string} */ key, /** @type {number[]} */ box, /** @type {number} */ sc, /** @type {any} */ it) => {
+			const now = { key, box, scale: sc, item: it, seen: performance.now() };
+			const was = shown.get(key);
+			if (was) {
+				Object.assign(was, now);
+			} else {
+				shown.set(key, now);
+			}
+		};
+		if (bb) {
+			note(`${key0}:bb`, [toX(BB_BOX[0]), toY(BB_BOX[1]), toX(BB_BOX[2]), toY(BB_BOX[3])], scale, bb);
+		}
+		if (!item) {
+			return;
+		}
 		const place = placeOf(item);
 		const width = (TV.width * place.size) / 100;
 		const height = (width - 2 * TV.bezel * (place.size / 100)) * (9 / 16) + 2 * TV.bezel * (place.size / 100);
 		const cx = TV.x + place.x;
 		const cy = TV.y + place.y;
-		const key = String(C.MemberNumber ?? `npc${C.CharacterID}`);
-		const box = [toX(cx - width / 2), toY(cy - height / 2), toX(cx + width / 2), toY(cy + height / 2)];
-		const now = { key, box, scale: scale * (place.size / 100), item, seen: performance.now() };
-		// (the same record every frame: the player's callbacks hold on to it)
-		const was = shown.get(key);
-		if (was) {
-			Object.assign(was, now);
-		} else {
-			shown.set(key, now);
-		}
+		note(key0, [toX(cx - width / 2), toY(cy - height / 2), toX(cx + width / 2), toY(cy + height / 2)], scale * (place.size / 100), item);
 	}
 
 	/**
@@ -595,17 +617,22 @@
 	/** A TV's page element: the frame, the screen inside it, and its own mute button for you. */
 	function makeTV(/** @type {string} */ key) {
 		const el = document.createElement('div');
-		el.className = 'sce-tv';
-		el.style.cssText =
-			'position:absolute;box-sizing:border-box;background:linear-gradient(#26262c,#121216);border-radius:6px;' +
-			'box-shadow:0 0 0 1px #4a4a55 inset,0 6px 18px #000a;pointer-events:none;';
+		el.className = isBB(key) ? 'sce-tv sce-bb' : 'sce-tv';
+		el.style.cssText = isBB(key)
+			? 'position:absolute;box-sizing:border-box;pointer-events:none;'
+			: 'position:absolute;box-sizing:border-box;background:linear-gradient(#26262c,#121216);border-radius:6px;' +
+				'box-shadow:0 0 0 1px #4a4a55 inset,0 6px 18px #000a;pointer-events:none;';
 		const screen = document.createElement('div');
 		screen.className = 'sce-tv-screen';
-		screen.style.cssText =
-			'position:relative;width:100%;height:100%;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,#1c1c26,#050507 70%);border-radius:2px;';
+		screen.style.cssText = isBB(key)
+			? 'position:relative;width:100%;height:100%;overflow:hidden;'
+			: 'position:relative;width:100%;height:100%;overflow:hidden;background:radial-gradient(ellipse at 30% 20%,#1c1c26,#050507 70%);border-radius:2px;';
 		const led = document.createElement('div');
 		led.className = 'sce-tv-led';
 		led.style.cssText = 'position:absolute;left:50%;bottom:2px;width:6px;height:3px;margin-left:-3px;border-radius:2px;background:#c43;';
+		if (isBB(key)) {
+			led.style.display = 'none';
+		}
 		// The controls, like a video player's: they show while the mouse moves over the TV and fade a moment after it
 		// stops (hidden, they take no clicks: the game gets them). Clicks on them never reach the game below.
 		const ui = document.createElement('div');
@@ -644,7 +671,7 @@
 			const C = ownerOf(key);
 			const s = shown.get(key);
 			if (C && s) {
-				togglePause(C, tvOf(C) || s.item, s);
+				togglePause(C, tvOf(C, isBB(key)) || s.item, s);
 			}
 		});
 		pause.style.cssText += 'position:static;flex:none;width:22px;height:22px;font-size:12px;line-height:22px;background:transparent;';
@@ -671,7 +698,7 @@
 			const s = shown.get(key);
 			if (C && s) {
 				s.dragging = false;
-				seekTo(C, tvOf(C) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
+				seekTo(C, tvOf(C, isBB(key)) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
 			}
 		});
 		// (how loud this person's TV is for you: everyone gets it, not only who may change the TV)
@@ -853,7 +880,7 @@
 			const C = ownerOf(key);
 			const s = shown.get(key);
 			if (C && s) {
-				power(C, tvOf(C) || s.item, !s.on);
+				power(C, tvOf(C, isBB(key)) || s.item, !s.on);
 			}
 		});
 		powerButton.textContent = '⏻';
@@ -886,14 +913,14 @@
 				const C = ownerOf(key);
 				const t = shown.get(key);
 				if (C && t) {
-					togglePause(C, tvOf(C) || t.item, t);
+					togglePause(C, tvOf(C, isBB(key)) || t.item, t);
 				}
 			}, 250);
 		});
 		hit.addEventListener('dblclick', (e) => {
 			clearTimeout(clickWait);
 			const s = shown.get(key);
-			if (!s || s.pop || s.float) {
+			if (!s || s.pop || s.float || isBB(key)) {
 				return;
 			}
 			e.stopPropagation();
@@ -925,6 +952,10 @@
 			// Someone else's TV: nothing of it loads until you choose to watch it.
 			const ask = document.createElement('div');
 			ask.className = 'sce-tv-ask';
+			if (isBB(s.key)) {
+				ask.style.background = '#000c';
+				ask.style.borderRadius = '10px';
+			}
 			ask.style.cssText =
 				'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ccc;font:13px sans-serif;text-align:center;padding:30px 6px 6px;';
 			const C = ownerOf(s.key);
@@ -950,15 +981,15 @@
 			const note = document.createElement('div');
 			const row = document.createElement('div');
 			row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center;';
-			if (always()[s.key] === 'off') {
+			if (always()[memberOf(s.key)] === 'off') {
 				note.textContent = `🚫 You chose never to see ${who} TV`;
-				row.append(choice('Undo', 'sce-tv-undo', 'Ask me again about their TV', () => setAlways(s.key, '')));
+				row.append(choice('Undo', 'sce-tv-undo', `Ask me again about their ${thing(s.key)}`, () => setAlways(memberOf(s.key), '')));
 			} else {
-				note.textContent = `📺 ${who} TV is playing something`;
+				note.textContent = isBB(s.key) ? `📻 ${who} boombox is playing something` : `📺 ${who} TV is playing something`;
 				row.append(
-					choice('▶ Watch', 'sce-tv-watch', 'Watch this, only for you (a new room asks again)', () => watching.add(`${s.key}|${link}`)),
-					choice('Always', 'sce-tv-always', "Always play this person's TVs for you, in every room", () => setAlways(s.key, 'on')),
-					choice('Never', 'sce-tv-never', "Never show this person's TVs to you", () => setAlways(s.key, 'off')),
+					choice(isBB(s.key) ? '▶ Listen' : '▶ Watch', 'sce-tv-watch', 'Play this, only for you (a new room asks again)', () => watching.add(`${s.key}|${link}`)),
+					choice('Always', 'sce-tv-always', "Always play this person's TVs and boombox for you, in every room", () => setAlways(memberOf(s.key), 'on')),
+					choice('Never', 'sce-tv-never', "Never play this person's TVs and boombox for you", () => setAlways(memberOf(s.key), 'off')),
 				);
 			}
 			ask.append(note, row);
@@ -995,7 +1026,9 @@
 			const target = relay ? RELAY_ORIGIN : YT_ORIGIN;
 			f.allow = 'autoplay; encrypted-media';
 			f.referrerPolicy = 'strict-origin-when-cross-origin';
-			f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;';
+			f.style.cssText = isBB(s.key)
+				? 'position:absolute;left:0;top:0;width:200px;height:200px;border:0;opacity:0;pointer-events:none;'
+				: 'position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;';
 			f.addEventListener('load', () => {
 				// (nothing is sent before the player's page has loaded: until then the frame is still a blank page of
 				// this site, and the browser refuses messages addressed to YouTube with a console error)
@@ -1015,7 +1048,7 @@
 			screen.append(f);
 			return;
 		}
-		const v = document.createElement('video');
+		const v = document.createElement(isBB(s.key) ? 'audio' : 'video');
 		v.src = what.file;
 		v.autoplay = !paused;
 		v.loop = true;
@@ -1141,7 +1174,8 @@
 	/** The character a TV on screen belongs to (in the room), or null. */
 	function ownerOf(/** @type {string} */ key) {
 		const list = Array.isArray(w.ChatRoomCharacter) ? w.ChatRoomCharacter : [];
-		return list.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === key) || null;
+		const m = memberOf(key);
+		return list.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === m) || null;
 	}
 	/**
 	 * Whether you may switch a character's TV on and off, as the game lets you change their items: always your own; someone
@@ -1165,9 +1199,10 @@
 		}
 		item.Property = { ...prop, Text2: on ? String(Math.round(serverNow())) : 'off' };
 		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-			w.ChatRoomCharacterItemUpdate(C, GROUP);
+			w.ChatRoomCharacterItemUpdate(C, item.Asset.Group.Name);
 		}
-		const tv = C.IsPlayer() ? 'the TV' : `${nick(C)}'s TV`;
+		const it = item.Asset.Name === BB_NAME ? 'boombox' : 'TV';
+		const tv = C.IsPlayer() ? `the ${it}` : `${nick(C)}'s ${it}`;
 		say(`${nick(w.Player)} turns ${tv} ${on ? 'on' : 'off'}.`);
 	}
 
@@ -1203,7 +1238,7 @@
 		}
 		item.Property = { ...(item.Property || {}), Text2: text2 };
 		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-			w.ChatRoomCharacterItemUpdate(C, GROUP);
+			w.ChatRoomCharacterItemUpdate(C, item.Asset.Group.Name);
 		}
 		if (s.media) {
 			s.media.synced = 0;
@@ -1245,7 +1280,8 @@
 		}
 		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && [...ui.children].some((c) => !c.classList.contains('sce-tv-hit') && c.matches(':hover')));
 		// (a small TV, as on the map, shows only ⛶: full screen has every control)
-		const tiny = !s.full && !s.pop && !s.float && r.width < 170;
+		// (a boombox needs only its bar: it's small sooner)
+		const tiny = !s.full && !s.pop && !s.float && r.width < (isBB(s.key) ? 100 : 170);
 		for (const cls of ['.sce-tv-power', '.sce-tv-off', '.sce-tv-mute']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && tiny) {
@@ -1375,6 +1411,15 @@
 
 		}
 
+		// (a boombox has no picture: no full screen, pop-out, floating window or chat beside it)
+		if (isBB(s.key)) {
+			for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-chatbtn']) {
+				const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
+				if (b) {
+					b.hidden = true;
+				}
+			}
+		}
 		const v = s.fresh === false ? 0 : volume(s.key);
 		if (!s.media || s.volume === v) {
 			return;
@@ -1455,7 +1500,7 @@
 			const stays = (/** @type {string} */ key) => {
 				const t = key ? shown.get(key) : null;
 				const C = t && inRoom ? ownerOf(key) : null;
-				const item = C && !blocked(C) ? tvOf(C) : null;
+				const item = C && !blocked(C) ? tvOf(C, isBB(key)) : null;
 				if (!t || !item || !(item.Property || {}).Text) {
 					return false;
 				}
@@ -1487,7 +1532,8 @@
 				s.fresh = fresh;
 				const owner = fresh ? null : ownerOf(key);
 				const gone =
-					!fresh && (w.CurrentScreen !== 'ChatRoom' || !tvOf(owner) || !(tvOf(owner).Property || {}).Text || blocked(owner));
+					!fresh &&
+					(w.CurrentScreen !== 'ChatRoom' || !tvOf(owner, isBB(key)) || !(tvOf(owner, isBB(key)).Property || {}).Text || blocked(owner));
 				// (only the popped-out TV plays outside the chat room screen)
 				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop && !s.float;
 				if (!at || gone || now - s.seen > KEEP_MS) {
@@ -1535,7 +1581,7 @@
 					});
 				} else {
 					const [x0, y0, x1, y1] = s.box.map((v) => v * at.k);
-					const bezel = Math.max(2, TV.bezel * s.scale * at.k);
+					const bezel = isBB(key) ? 0 : Math.max(2, TV.bezel * s.scale * at.k);
 					Object.assign(s.el.style, {
 						left: `${x0}px`,
 						top: `${y0}px`,
@@ -1581,8 +1627,11 @@
 
 	function focused() {
 		const item = w.DialogFocusItem;
-		return item && item.Asset && item.Asset.Name === NAME ? item : null;
+		return item && item.Asset && (item.Asset.Name === NAME || item.Asset.Name === BB_NAME) ? item : null;
 	}
+	/** Whether the menu open is the boombox's (else the TV's); kept from its opening, for its closing. */
+	let menuBB = false;
+	const menuGroup = () => (menuBB ? BB_GROUP : GROUP);
 	/** Changes the TV being looked at in the menu, and tells the room. */
 	function change(/** @type {Record<string, string>} */ props, now = true) {
 		const item = focused();
@@ -1594,7 +1643,7 @@
 		clearTimeout(pending);
 		const send = () => {
 			if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-				w.ChatRoomCharacterItemUpdate(C, GROUP);
+				w.ChatRoomCharacterItemUpdate(C, menuGroup());
 			}
 		};
 		if (now) {
@@ -1612,12 +1661,13 @@
 	/** The member number of whose TV the menu shows (how mutes are kept). */
 	function menuKey() {
 		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
-		return C ? String(C.MemberNumber ?? `npc${C.CharacterID}`) : '';
+		return C ? `${C.MemberNumber ?? `npc${C.CharacterID}`}${menuBB ? ':bb' : ''}` : '';
 	}
 	const nick = (/** @type {any} */ C) => (typeof w.CharacterNickname === 'function' ? w.CharacterNickname(C) : C.Name);
 	function whose() {
 		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
-		return !C || C.IsPlayer() ? 'the TV' : `${nick(C)}'s TV`;
+		const it = menuBB ? 'boombox' : 'TV';
+		return !C || C.IsPlayer() ? `the ${it}` : `${nick(C)}'s ${it}`;
 	}
 
 	const BUTTONS = {
@@ -1636,14 +1686,15 @@
 	};
 	const inside = (/** @type {number[]} */ b) => typeof w.MouseIn === 'function' && w.MouseIn(b[0], b[1], b[2], b[3]);
 
-	itemMenus.set(NAME, {
+	const menu = {
 		Load(/** @type {any} */ data, /** @type {Function} */ next) {
 			const r = typeof next === 'function' ? next() : undefined;
 			status = '';
 			const item = focused();
+			menuBB = !!item && item.Asset.Name === BB_NAME;
 			const input = w.ElementCreateInput('SCETVLink', 'text', (item && item.Property && item.Property.Text) || '', MAX_LINK);
 			if (input) {
-				input.placeholder = 'YouTube or .mp4 link';
+				input.placeholder = menuBB ? 'YouTube or music file (.mp3) link' : 'YouTube or .mp4 link';
 				input.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
 					if (e.key === 'Enter') {
 						e.preventDefault();
@@ -1664,21 +1715,31 @@
 			const place = placeOf(item);
 			w.ElementPosition('SCETVLink', 1500, 470, 800, 60);
 			const B = BUTTONS;
+			const it = menuBB ? 'boombox' : 'TV';
 			w.DrawButton(...B.play, '▶ Play', 'White');
 			w.DrawButton(...B.off, '■ Turn off', item.Property && item.Property.Text && item.Property.Text2 !== 'off' ? 'White' : '#bbb');
-			w.DrawButton(...B.smaller, '−', place.size > SIZE.min ? 'White' : '#bbb');
-			w.DrawText(`Size ${place.size}%`, 1290, 682, 'White', 'Black');
-			w.DrawButton(...B.bigger, '+', place.size < SIZE.max ? 'White' : '#bbb');
-			w.DrawButton(...B.left, '←', 'White');
-			w.DrawButton(...B.up, '↑', 'White');
-			w.DrawButton(...B.down, '↓', 'White');
-			w.DrawButton(...B.right, '→', 'White');
-			w.DrawButton(...B.reset, 'Reset size and place', 'White');
-			w.DrawButton(...B.mute, muted() ? '🔇 TV sound off (for me)' : '🔊 TV sound on (for me)', 'White');
+			// (the boombox is drawn by the game where the hands hold it: no size or place of its own)
+			if (!menuBB) {
+				w.DrawButton(...B.smaller, '−', place.size > SIZE.min ? 'White' : '#bbb');
+				w.DrawText(`Size ${place.size}%`, 1290, 682, 'White', 'Black');
+				w.DrawButton(...B.bigger, '+', place.size < SIZE.max ? 'White' : '#bbb');
+				w.DrawButton(...B.left, '←', 'White');
+				w.DrawButton(...B.up, '↑', 'White');
+				w.DrawButton(...B.down, '↓', 'White');
+				w.DrawButton(...B.right, '→', 'White');
+				w.DrawButton(...B.reset, 'Reset size and place', 'White');
+			}
+			w.DrawButton(...B.mute, muted() ? '🔇 TV and boombox sound off (for me)' : '🔊 TV and boombox sound on (for me)', 'White');
 			const owner = menuKey();
-			w.DrawButton(...B.muteThis, mutedTVs().has(owner) ? '🔇 This TV muted for me' : '🔊 Mute this TV (for me)', 'White');
-			w.DrawButton(...B.tvs, tvsOn() ? '🙈 Hide all TVs (for me)' : '📺 Show TVs again (for me)', 'White');
-			w.DrawText('A YouTube link, or a link to a video file (.mp4, .webm)', 1500, 935, 'White', 'Black');
+			w.DrawButton(...B.muteThis, mutedTVs().has(owner) ? `🔇 This ${it} muted for me` : `🔊 Mute this ${it} (for me)`, 'White');
+			w.DrawButton(...B.tvs, tvsOn() ? '🙈 Hide all TVs and boomboxes (for me)' : '📺 Show them again (for me)', 'White');
+			w.DrawText(
+				menuBB ? 'A YouTube link (its sound), or a link to a music file (.mp3, .ogg, .wav)' : 'A YouTube link, or a link to a video file (.mp4, .webm)',
+				1500,
+				935,
+				'White',
+				'Black',
+			);
 			if (status || !tvsOn()) {
 				w.DrawText(status || 'TVs are switched off in your SCE settings: others still see this one.', 1500, 975, '#ffd479', 'Black');
 			}
@@ -1692,13 +1753,16 @@
 			const place = placeOf(item);
 			const move = (/** @type {number} */ size, /** @type {number} */ x, /** @type {number} */ y) =>
 				change({ Text3: `${size},${x},${y}` }, false);
+			if (menuBB && [B.smaller, B.bigger, B.left, B.right, B.up, B.down, B.reset].some(inside)) {
+				return true;
+			}
 			if (inside(B.play)) {
 				play();
 			} else if (inside(B.off)) {
 				if (item.Property && item.Property.Text && item.Property.Text2 !== 'off') {
 					// (the link stays: ⏻ on the TV or Play switches it on again)
 					change({ Text2: 'off' });
-					status = 'The TV is off.';
+					status = `The ${menuBB ? 'boombox' : 'TV'} is off.`;
 					say(`${nick(w.Player)} turns ${whose()} off.`);
 				}
 			} else if (inside(B.smaller)) {
@@ -1737,14 +1801,16 @@
 				pending = null;
 				const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
 				if (C && typeof w.ChatRoomCharacterItemUpdate === 'function') {
-					w.ChatRoomCharacterItemUpdate(C, GROUP);
+					w.ChatRoomCharacterItemUpdate(C, menuGroup());
 				}
 			}
 			if (typeof w.ElementRemove === 'function') {
 				w.ElementRemove('SCETVLink');
 			}
 		},
-	});
+	};
+	itemMenus.set(NAME, menu);
+	itemMenus.set(BB_NAME, menu);
 
 	/** Plays the link in the menu's box. */
 	function play() {
@@ -1755,7 +1821,7 @@
 			return;
 		}
 		if (link.length > MAX_LINK || !parseLink(link)) {
-			status = "That isn't a YouTube link or a link to a video file.";
+			status = "That isn't a YouTube link or a link to a video or music file.";
 			return;
 		}
 		change({ Text: link, Text2: String(Math.round(serverNow())) });
@@ -1773,19 +1839,25 @@
 				return;
 			}
 			myRoom = room;
-			const item = room ? tvOf(w.Player) : null;
-			if (!item || !(item.Property || {}).Text || stateOf(item).mode !== 'play') {
-				return;
+			// (the TV and the boombox alike)
+			const paused = [];
+			for (const bb of [false, true]) {
+				const item = room ? tvOf(w.Player, bb) : null;
+				if (!item || !(item.Property || {}).Text || stateOf(item).mode !== 'play') {
+					continue;
+				}
+				const s = shown.get(`${myKey()}${bb ? ':bb' : ''}`);
+				const d = s ? lengthOf(s) : 0;
+				const at = d ? wantedAt(item) % d : wantedAt(item);
+				item.Property = { ...item.Property, Text2: `p${at.toFixed(2)}` };
+				if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
+					w.ChatRoomCharacterItemUpdate(w.Player, bb ? BB_GROUP : GROUP);
+				}
+				paused.push(bb ? 'boombox' : 'TV');
 			}
-			const s = shown.get(myKey());
-			const d = s ? lengthOf(s) : 0;
-			const at = d ? wantedAt(item) % d : wantedAt(item);
-			item.Property = { ...item.Property, Text2: `p${at.toFixed(2)}` };
-			if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-				w.ChatRoomCharacterItemUpdate(w.Player, GROUP);
-			}
-			if (typeof toast === 'function') {
-				toast('📺 Your TV is paused', 'It pauses when you join a room, so everyone has time to react. Press ▶ on it to play it for the room.', 8000);
+			if (paused.length && typeof toast === 'function') {
+				const what = paused.join(' and ');
+				toast(`📺 Your ${what} ${paused.length > 1 ? 'are' : 'is'} paused`, `It pauses when you join a room, so everyone has time to react. Press ▶ on it to play it for the room.`, 8000);
 			}
 		} catch (e) {
 			problem(FEATURE, e);

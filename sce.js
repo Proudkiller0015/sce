@@ -1628,8 +1628,8 @@
 		const RESTORE = [LEFT, TOP + (boxes.length + 1) * ROW + 80, 640, 64];
 		/** The Players page: its boxes (label, setting, the setting it sits under), the volume row and the resets. */
 		const PLAYER_BOXES = /** @type {[string, keyof typeof settings, (keyof typeof settings)?][]} */ ([
-			['Show TVs (off: no TV shows or plays for you)', 'tvs'],
-			["Ask before other people's TVs play (off: see every TV)", 'tvsAsk', 'tvs'],
+			['Show TVs and boomboxes (off: none shows or plays for you)', 'tvs'],
+			["Ask before other people's TVs and boomboxes play (off: play them all)", 'tvsAsk', 'tvs'],
 		]);
 		const CHAT_BOX = TOP + 2 * ROW;
 		const VOLUME_ROW = TOP + 3 * ROW + 10;
@@ -1637,7 +1637,7 @@
 		const RESETS = [
 			['Forget my Always / Never choices', 'choices', 'forgetChoices'],
 			["Put every person's TV back to the base volume", 'volumes', 'resetVolumes'],
-			['Unmute the TVs I muted', 'muted', 'unmuteAll'],
+			['Unmute the TVs and boomboxes I muted', 'muted', 'unmuteAll'],
 			['Put the floating player and the chat width back', 'placed', 'resetPlaces'],
 		];
 		const resetBox = (/** @type {number} */ i) => /** @type {[number, number, number, number]} */ ([LEFT, TOP + 5 * ROW + i * (ROW + 6), 760, 60]);
@@ -1672,7 +1672,7 @@
 		/** The Players page: every TV option in one place (the boombox's join it when it comes). */
 		function drawPlayers() {
 			const ctx = MainCanvas;
-			w.DrawText('- Players: TVs -', LEFT, 125, 'Black', 'Gray');
+			w.DrawText('- Players: TVs and boomboxes -', LEFT, 125, 'Black', 'Gray');
 			PLAYER_BOXES.forEach(([label, key, under], i) =>
 				w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
 			);
@@ -1771,7 +1771,7 @@
 							w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
 						);
 						ctx.textAlign = 'center';
-						w.DrawButton(...PLAYERS, `📺 Players: TV options${settings.tvs ? '' : ' (TVs off)'}`, 'White');
+						w.DrawButton(...PLAYERS, `📺 Players: TVs and boomboxes${settings.tvs ? '' : ' (off)'}`, 'White');
 						ctx.textAlign = 'left';
 						const off = [...problems.keys()];
 						// (fitted, and the first few named: items left out of the slots each have their own entry)
