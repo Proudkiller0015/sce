@@ -128,6 +128,14 @@
 			other: { groups: ['ItemArms'], label: 'Tug Sleeve', text: 'SourceCharacter tugs on DestinationCharacter sleeve to get TargetPronounPossessive attention.' },
 		},
 		{
+			name: 'SCE_TickleArmpit', image: 'Tickle', prereq: ['UseHands'], react: [['Mouth', 'Laughing', 8], ['Blush', 'Low', 10]],
+			other: { groups: ['ItemArms'], label: 'Tickle Armpit', text: 'SourceCharacter wiggles PronounPossessive fingers into DestinationCharacter armpit and tickles TargetPronounObject mercilessly.' },
+		},
+		{
+			name: 'SCE_LickArmpit', image: 'Lick', prereq: ['UseTongue'], react: [['Eyes', 'Surprised', 5], ['Blush', 'Medium', 10]],
+			other: { groups: ['ItemArms'], label: 'Lick Armpit', text: 'SourceCharacter slowly licks DestinationCharacter armpit.' },
+		},
+		{
 			name: 'SCE_ObiSpin', image: 'Icons/Expressions/Eyes/Dizzy.png', prereq: ['UseHands', 'SCE_TargetKimono'],
 			react: [['Eyes', 'Dizzy', 6], ['Blush', 'Medium', 10]],
 			other: { groups: ['ItemTorso'], label: 'Obi Spin', text: 'SourceCharacter grabs the end of DestinationCharacter obi and pulls hard, spinning TargetCharacter round and round!' },
