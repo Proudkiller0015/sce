@@ -248,11 +248,43 @@
 		if (muted() || mutedTVs().has(key)) {
 			return 0;
 		}
-		const audio = w.Player && w.Player.AudioSettings;
-		let v = audio && typeof audio.Volume === 'number' ? audio.Volume : 1;
+		let v = tvVolume(key) / 100;
 		const deaf = w.Player && typeof w.Player.GetDeafLevel === 'function' ? w.Player.GetDeafLevel() : 0;
 		v *= Math.max(0, 1 - deaf * 0.25);
 		return Math.max(0, Math.min(1, v));
+	}
+	/**
+	 * How loud each person's TV is for you (0-100, by their member number), kept in this browser: until you move a TV's
+	 * own slider, the base TV volume in SCE's settings (30 to start). Not the game's sound volume.
+	 */
+	const VOLUME_KEY = 'sce.tv.volumes';
+	const VOLUME_DEFAULT = 30;
+	/** @returns {Record<string, number>} */
+	function volumes() {
+		try {
+			const v = JSON.parse(localStorage.getItem(VOLUME_KEY) || '{}');
+			return v && typeof v === 'object' ? v : {};
+		} catch {
+			return {};
+		}
+	}
+	function tvVolume(/** @type {string} */ key) {
+		const v = Number(volumes()[key]);
+		const base = settings && Number.isFinite(settings.tvVolume) ? settings.tvVolume : VOLUME_DEFAULT;
+		return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : Math.max(0, Math.min(100, base));
+	}
+	function setTvVolume(/** @type {string} */ key, /** @type {number} */ v) {
+		const all = volumes();
+		all[key] = Math.round(v);
+		try {
+			localStorage.setItem(VOLUME_KEY, JSON.stringify(all));
+		} catch {
+			// (blocked storage: the slider still moves this time)
+		}
+		const s = shown.get(key);
+		if (s) {
+			s.volume = undefined;
+		}
 	}
 	function muted() {
 		try {
@@ -398,7 +430,20 @@
 				seekTo(C, tvOf(C) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
 			}
 		});
-		bar.append(pause, seek, time);
+		// (how loud this person's TV is for you: everyone gets it, not only who may change the TV)
+		const vol = document.createElement('input');
+		vol.className = 'sce-tv-vol';
+		vol.type = 'range';
+		vol.min = '0';
+		vol.max = '100';
+		vol.step = '1';
+		vol.title = "This TV's volume (for you)";
+		vol.style.cssText = 'flex:none;width:56px;height:12px;margin:0;cursor:pointer;accent-color:#c9a0ff;';
+		vol.addEventListener('input', () => setTvVolume(key, Number(vol.value)));
+		const volIcon = document.createElement('span');
+		volIcon.textContent = '🔉';
+		volIcon.style.cssText = 'flex:none;font-size:11px;opacity:.85;';
+		bar.append(pause, seek, time, volIcon, vol);
 		const mute = small('sce-tv-mute', () => toggleTV(key));
 		mute.style.right = '34px';
 		const full = small('sce-tv-full', () => {
@@ -773,13 +818,20 @@
 		const C = ownerOf(s.key);
 		const d = lengthOf(s);
 		const st = stateOf(s.item);
-		bar.hidden = tiny || !s.media || st.mode === 'off' || !mayPower(C, s.item);
+		// (the bar shows to everyone for the volume; pause and the time bar only to whoever may change the TV)
+		const may = mayPower(C, s.item);
+		bar.hidden = tiny || !s.media || st.mode === 'off';
 		bar.style.bottom = s.full ? '14px' : '6px';
 		bar.style.left = bar.style.right = s.full ? '14px' : '6px';
 		bar.style.fontSize = s.full ? '13px' : '11px';
 		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
 		const time = /** @type {HTMLElement} */ (bar.querySelector('.sce-tv-time'));
-		seek.hidden = !d;
+		seek.hidden = !d || !may;
+		/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')).hidden = !may;
+		const vol = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-vol'));
+		if (document.activeElement !== vol) {
+			vol.value = String(tvVolume(s.key));
+		}
 		label(/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')), st.mode === 'pause' ? '▶' : '⏸', st.mode === 'pause' ? 'Play (for everyone)' : 'Pause (for everyone)');
 		if (!s.dragging) {
 			const at = timeOf(s);

@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.2';
+	const VERSION = '1.8.3';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -1409,13 +1409,17 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean, tvs: boolean, tvsAsk: boolean }} */
-	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true, tvs: true, tvsAsk: true };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean, tvs: boolean, tvsAsk: boolean, tvVolume: number }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true, tvs: true, tvsAsk: true, tvVolume: 30 };
+	/** The base TV volume's range and step (%), on the settings page. */
+	const TV_VOLUME = { min: 0, max: 100, step: 10 };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
-			if (typeof saved[k] === 'boolean') {
+			if (typeof saved[k] === 'boolean' && typeof settings[k] === 'boolean') {
 				settings[k] = saved[k];
+			} else if (typeof saved[k] === 'number' && typeof settings[k] === 'number' && Number.isFinite(saved[k])) {
+				settings[k] = Math.max(TV_VOLUME.min, Math.min(TV_VOLUME.max, saved[k]));
 			}
 		}
 	} catch {
@@ -1567,7 +1571,7 @@
 			['Show what is new after an update', 'updateNotes'],
 			['Add the extra clothing slots (from the next reload)', 'extraSlots'],
 			["With other add-ons' items in them too (from the next reload)", 'slotAddOnItems', 'extraSlots'],
-			["Show TVs and play their sound (off: nobody's TV shows for you)", 'tvs'],
+			["Show TVs (off: no TV shows or plays for you)", 'tvs'],
 			["Ask before other people's TVs play (off: see every TV)", 'tvsAsk', 'tvs'],
 		];
 		/** A box's left edge: one under another is set in. */
@@ -1584,6 +1588,10 @@
 		const CREDITS = [LEFT + 940, RESTORE[1] + 90, 200, 64];
 		/** @type {[number, number, number, number]} */
 		const DEVS = [LEFT + 1160, RESTORE[1] + 90, 240, 64];
+		/** @type {[number, number, number, number]} The base TV volume's buttons (their row is the TV line's). */
+		const TV_LESS = [1480, 0, 64, 64];
+		/** @type {[number, number, number, number]} */
+		const TV_MORE = [1880, 0, 64, 64];
 		/** @type {[number, number, number, number]} A small link to the repository, by the title. */
 		const REPO = [1560, 95, 220, 56];
 		/** @type {[number, number, number, number]} The contribute page's link to the guide. */
@@ -1641,6 +1649,13 @@
 						boxes.forEach(([label, key, under], i) =>
 							w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
 						);
+						// (the base TV volume, on the TV line: every TV starts at it until its own slider is moved)
+						const tvRow = TOP + boxes.findIndex(([, key]) => key === 'tvs') * ROW;
+						ctx.textAlign = 'center';
+						w.DrawButton(TV_LESS[0], tvRow, TV_LESS[2], TV_LESS[3], '−', settings.tvVolume > TV_VOLUME.min ? 'White' : '#bbb');
+						w.DrawText(`TV volume ${settings.tvVolume}%`, (TV_LESS[0] + TV_MORE[0] + TV_MORE[2]) / 2, tvRow + 32, 'Black', 'Gray');
+						w.DrawButton(TV_MORE[0], tvRow, TV_MORE[2], TV_MORE[3], '+', settings.tvVolume < TV_VOLUME.max ? 'White' : '#bbb');
+						ctx.textAlign = 'left';
 						const off = [...problems.keys()];
 						// (fitted, and the first few named: items left out of the slots each have their own entry)
 						const named = off.length > 4 ? `${off.slice(0, 4).join(', ')} and ${off.length - 4} more` : off.join(', ');
@@ -1710,6 +1725,14 @@
 						if (mouseIn(ACTIVITY_LIST)) {
 							page = 'activities';
 							return;
+						}
+						const tvRow = TOP + boxes.findIndex(([, key]) => key === 'tvs') * ROW;
+						for (const [box, step] of /** @type {[number[], number][]} */ ([[TV_LESS, -TV_VOLUME.step], [TV_MORE, TV_VOLUME.step]])) {
+							if (mouseIn([box[0], tvRow, box[2], box[3]])) {
+								settings.tvVolume = Math.max(TV_VOLUME.min, Math.min(TV_VOLUME.max, settings.tvVolume + step));
+								saveSettings();
+								return;
+							}
 						}
 						if (mouseIn(RESTORE)) {
 							const back = putBack();

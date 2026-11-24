@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.3",
+		"title": "Slime Clothing Extension v1.8.3",
+		"text": "📺 TV sound of its own: each person's TV has its own volume slider on its bar (just for you), starting at the base TV volume in SCE's settings, 30% to begin with. It no longer follows the game's sound volume."
+	},
+	{
 		"id": "1.8.2",
 		"title": "Slime Clothing Extension v1.8.2",
 		"text": "📺 TVs got real player controls: they show while your mouse moves over a TV and hide after. ⏸ pauses and ▶ plays for everyone in the room, and the time bar jumps to any part of the video for everyone (for whoever may change that TV). Full screen has all of them too. Joining a room pauses your TV for everyone, so the room has time to react; press ▶ to play it. TVs of players on your blacklist or ghost list never show for you. TVs now work in map rooms: small over each character, with ⛶ to watch full screen."
