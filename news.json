@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.11",
+		"title": "Slime Clothing Extension v1.8.11",
+		"text": "📻 Boombox (Held items): carried by its handle, it plays a music file (.mp3, .ogg, .wav) or a YouTube link's sound for the whole room, in sync, like the TV: pause, seek, its own volume, Listen / Always / Never. 🗺️ In map rooms TVs and boomboxes are heard within a range (10 tiles to start, fading out at the edge); their owner sets it in the item's menu, up to the whole map. ⚙️ All TV and boombox options are on one page: Settings > SCE > 📺 Players."
+	},
+	{
 		"id": "1.8.10",
 		"title": "Slime Clothing Extension v1.8.10",
 		"text": "🐛 Fixed: TVs went quiet on and off while you were in another tab; they now play on untouched. 📌 The floating TV window has the room chat beside the video, like full screen (💬 hides it)."

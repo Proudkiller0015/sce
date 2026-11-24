@@ -200,12 +200,46 @@
 	/** The TV's size (%) and how far it is moved, from Text3. */
 	function placeOf(/** @type {any} */ item) {
 		const [s, x, y] = String((item.Property && item.Property.Text3) || '')
+			.split(';')[0]
 			.split(',')
 			// (an empty part is "not set", not 0)
 			.map((v) => (v.trim() === '' ? NaN : Number(v)));
 		const clamp = (/** @type {number} */ v, /** @type {number} */ lo, /** @type {number} */ hi, /** @type {number} */ d) =>
 			Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d;
 		return { size: clamp(s, SIZE.min, SIZE.max, 100), x: clamp(x, -MOVE.max, MOVE.max, 0), y: clamp(y, -MOVE.max, MOVE.max, 0) };
+	}
+
+	/**
+	 * How far a TV or boombox is heard in a map room, in tiles (0: the whole map), the menu's steps: kept in Text3 after
+	 * its size and place, as ";r<tiles>", so everyone hears the same. 10 until its owner changes it.
+	 */
+	const RANGES = [3, 5, 10, 15, 20, 30, 0];
+	const RANGE_DEFAULT = 10;
+	function rangeOf(/** @type {any} */ item) {
+		const m = /;r(\d+)/.exec(String((item && item.Property && item.Property.Text3) || ''));
+		const v = m ? Number(m[1]) : RANGE_DEFAULT;
+		return RANGES.includes(v) ? v : RANGE_DEFAULT;
+	}
+	/** Text3 with a new range, its size and place kept. */
+	const withRange = (/** @type {any} */ item, /** @type {number} */ r) =>
+		`${String((item.Property && item.Property.Text3) || '').split(';')[0]};r${r}`;
+	/**
+	 * How much of a TV's or boombox's sound reaches you in a map room (0-1): all of it up to half its range from its
+	 * owner, fading to nothing at its edge; everywhere else (and your own) all of it.
+	 */
+	function hearing(/** @type {any} */ s) {
+		if (!s || typeof w.ChatRoomMapViewIsActive !== 'function' || !w.ChatRoomMapViewIsActive()) {
+			return 1;
+		}
+		const r = rangeOf(s.item);
+		const C = ownerOf(s.key);
+		const a = w.Player && w.Player.MapData && w.Player.MapData.Pos;
+		const b = C && C.MapData && C.MapData.Pos;
+		if (!r || !C || C.IsPlayer() || !a || !b || !Number.isFinite(a.X) || !Number.isFinite(b.X)) {
+			return 1;
+		}
+		const d = Math.hypot(a.X - b.X, a.Y - b.Y);
+		return d >= r ? 0 : d <= r / 2 ? 1 : (r - d) / (r / 2);
 	}
 
 	// ---- On screen
@@ -279,6 +313,8 @@
 		let v = tvVolume(key) / 100;
 		const deaf = w.Player && typeof w.Player.GetDeafLevel === 'function' ? w.Player.GetDeafLevel() : 0;
 		v *= Math.max(0, 1 - deaf * 0.25);
+		// (in a map room: how far it is)
+		v *= hearing(shown.get(key));
 		return Math.max(0, Math.min(1, v));
 	}
 	/**
@@ -1420,7 +1456,7 @@
 				}
 			}
 		}
-		const v = s.fresh === false ? 0 : volume(s.key);
+		const v = s.audible === false ? 0 : volume(s.key);
 		if (!s.media || s.volume === v) {
 			return;
 		}
@@ -1474,6 +1510,30 @@
 			if (room !== watchedRoom) {
 				watchedRoom = room;
 				watching.clear();
+			}
+			// In a map room a TV or boombox is heard by its range, on screen or not: everyone in the room wearing one has a
+			// player (hidden while the game doesn't draw them), heard as far as its range reaches.
+			const onMap = w.CurrentScreen === 'ChatRoom' && typeof w.ChatRoomMapViewIsActive === 'function' && w.ChatRoomMapViewIsActive();
+			if (onMap && Array.isArray(w.ChatRoomCharacter)) {
+				for (const C of w.ChatRoomCharacter) {
+					if (!C || blocked(C)) {
+						continue;
+					}
+					for (const bb of [false, true]) {
+						const it = tvOf(C, bb);
+						if (!it || !(it.Property || {}).Text) {
+							continue;
+						}
+						const k = `${C.MemberNumber ?? `npc${C.CharacterID}`}${bb ? ':bb' : ''}`;
+						const t = shown.get(k);
+						if (t) {
+							t.item = it;
+							t.heard = now;
+						} else {
+							shown.set(k, { key: k, box: [0, 0, 0, 0], scale: 1, item: it, seen: -1e9, heard: now });
+						}
+					}
+				}
 			}
 			const at = shown.size ? tvLayer() : null;
 			// A TV in full screen stays while its character is in the room wearing it, drawn or not (a menu over the
@@ -1530,13 +1590,16 @@
 				s.pop = key === popKey && !s.full && !s.float;
 				const fresh = s.full || s.pop || s.float || now - s.seen < 400;
 				s.fresh = fresh;
-				const owner = fresh ? null : ownerOf(key);
+				// (heard: drawn, or in a map room with its owner there)
+				const audible = fresh || (onMap && now - (s.heard || -1e9) < 1500);
+				s.audible = audible;
+				const owner = audible ? null : ownerOf(key);
 				const gone =
-					!fresh &&
+					!audible &&
 					(w.CurrentScreen !== 'ChatRoom' || !tvOf(owner, isBB(key)) || !(tvOf(owner, isBB(key)).Property || {}).Text || blocked(owner));
 				// (only the popped-out TV plays outside the chat room screen)
 				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop && !s.float;
-				if (!at || gone || now - s.seen > KEEP_MS) {
+				if (!at || gone || now - Math.max(s.seen, s.heard || -1e9) > KEEP_MS) {
 					if (s.float) {
 						floating?.win.close();
 						floating = null;
@@ -1683,6 +1746,8 @@
 		mute: [1520, 760, 380, 64],
 		muteThis: [1100, 840, 380, 56],
 		tvs: [1520, 840, 380, 56],
+		rangeLess: [1100, 906, 64, 56],
+		rangeMore: [1836, 906, 64, 56],
 	};
 	const inside = (/** @type {number[]} */ b) => typeof w.MouseIn === 'function' && w.MouseIn(b[0], b[1], b[2], b[3]);
 
@@ -1733,13 +1798,10 @@
 			const owner = menuKey();
 			w.DrawButton(...B.muteThis, mutedTVs().has(owner) ? `🔇 This ${it} muted for me` : `🔊 Mute this ${it} (for me)`, 'White');
 			w.DrawButton(...B.tvs, tvsOn() ? '🙈 Hide all TVs and boomboxes (for me)' : '📺 Show them again (for me)', 'White');
-			w.DrawText(
-				menuBB ? 'A YouTube link (its sound), or a link to a music file (.mp3, .ogg, .wav)' : 'A YouTube link, or a link to a video file (.mp4, .webm)',
-				1500,
-				935,
-				'White',
-				'Black',
-			);
+			const range = rangeOf(item);
+			w.DrawButton(...B.rangeLess, '−', range !== RANGES[0] ? 'White' : '#bbb');
+			w.DrawText(`Heard within ${range ? `${range} tiles` : 'the whole map'} (map rooms)`, 1500, 934, 'White', 'Black');
+			w.DrawButton(...B.rangeMore, '+', range !== RANGES[RANGES.length - 1] ? 'White' : '#bbb');
 			if (status || !tvsOn()) {
 				w.DrawText(status || 'TVs are switched off in your SCE settings: others still see this one.', 1500, 975, '#ffd479', 'Black');
 			}
@@ -1751,8 +1813,18 @@
 			}
 			const B = BUTTONS;
 			const place = placeOf(item);
+			// (a range set stays with the size and place)
+			const range = String((item.Property && item.Property.Text3) || '').split(';')[1];
 			const move = (/** @type {number} */ size, /** @type {number} */ x, /** @type {number} */ y) =>
-				change({ Text3: `${size},${x},${y}` }, false);
+				change({ Text3: `${size},${x},${y}${range ? `;${range}` : ''}` }, false);
+			const i = RANGES.indexOf(rangeOf(item));
+			if (inside(B.rangeLess) || inside(B.rangeMore)) {
+				const next = RANGES[Math.max(0, Math.min(RANGES.length - 1, i + (inside(B.rangeMore) ? 1 : -1)))];
+				if (next !== RANGES[i]) {
+					change({ Text3: withRange(item, next) }, false);
+				}
+				return true;
+			}
 			if (menuBB && [B.smaller, B.bigger, B.left, B.right, B.up, B.down, B.reset].some(inside)) {
 				return true;
 			}
@@ -1919,5 +1991,5 @@
 		},
 		resetPlaces: () => forget([POP_KEY, CHAT_W_KEY]),
 	};
-	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key, prefs };
+	w.SCETV = { parseLink, placeOf, rangeOf, hearing, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key, prefs };
 })();
