@@ -25,6 +25,11 @@
 		if (!/^[\w-]{11}$/.test(id)) {
 			return;
 		}
+		// (the game's address, which the floating window shares: commands are taken only from it, reports go only to it)
+		const host = (location.ancestorOrigins && location.ancestorOrigins[0]) || '';
+		if (!/^https?:\/\//.test(host)) {
+			return;
+		}
 		const frame = document.getElementById('player');
 		const p = new URLSearchParams({
 			autoplay: q.get('autoplay') === '1' ? '1' : '0',
@@ -52,8 +57,11 @@
 				return;
 			}
 			if (e.source !== frame.contentWindow) {
-				// (the TV's commands: they come from the game's tab, which runs SCE, or from the window this page is in.
-				// Only the player's own kinds of message are passed on.)
+				// (the TV's commands, from the game (its tab runs SCE, so they come from there, not from the floating
+				// window). Only the player's own kinds of message are passed on.)
+				if (e.origin !== host) {
+					return;
+				}
 				let kind = '';
 				try {
 					kind = JSON.parse(e.data).event;
@@ -69,7 +77,7 @@
 					waiting.push(e.data);
 				}
 			} else if (e.origin === YT) {
-				parent.postMessage(e.data, '*');
+				parent.postMessage(e.data, host);
 			}
 		});
 	})();
