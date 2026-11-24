@@ -5,8 +5,8 @@
 //
 // What plays is kept on the item, so everyone in the room with SCE sees the same thing:
 //   Text   the link
-//   Text2  when it started (ms, on the game server's clock), so everyone watches from the same moment; "off" when it
-//          is switched off (the link stays, so it can be switched on again)
+//   Text2  when it started (ms, on the game server's clock), so everyone watches from the same moment; "p<seconds>"
+//          when it is paused there; "off" when it is switched off (the link stays, so it can be switched on again)
 //   Text3  size and place: "<size %>,<right>,<down>" (in the character's own pixels)
 (() => {
 	'use strict';
@@ -26,8 +26,12 @@
 	const SIZE = { min: 20, max: 140, step: 10 };
 	const MOVE = { step: 20, max: 500 };
 	const MAX_LINK = 300;
-	/** How long a TV stays on once its character is no longer drawn (opening a menu, another screen): then it stops. */
-	const KEEP_MS = 1500;
+	/**
+	 * A TV whose character isn't drawn for a while (a menu over the room, out of sight on the map) is hidden and quiet but
+	 * keeps its player, so it comes back at once and YouTube's player doesn't load again (each load fills the console
+	 * with YouTube's own messages). It goes when its character leaves the room or takes it off, or after KEEP_MS.
+	 */
+	const KEEP_MS = 10 * 60 * 1000;
 	const MUTE_KEY = 'sce.tv.muted';
 	/** The TVs muted here one by one, by their character's member number (kept in this browser). */
 	const MUTED_TVS_KEY = 'sce.tv.mutedTVs';
@@ -40,6 +44,42 @@
 	let clockGap = 0;
 	/** The server's time now (this PC's clock until the server has told its own). */
 	const serverNow = () => Date.now() + clockGap;
+	/**
+	 * Where a TV's video is, from its Text2: playing since `start` (ms, server clock), paused at `at` seconds, or off.
+	 * @returns {{ mode: 'play', start: number } | { mode: 'pause', at: number } | { mode: 'off' }}
+	 */
+	function stateOf(/** @type {any} */ item) {
+		const t = String((item && item.Property && item.Property.Text2) || '');
+		if (t === 'off') {
+			return { mode: 'off' };
+		}
+		if (t.startsWith('p')) {
+			return { mode: 'pause', at: Math.max(0, Number(t.slice(1)) || 0) };
+		}
+		return { mode: 'play', start: Number(t) || 0 };
+	}
+	/** Seconds into the video everyone should be at now (before looping round). */
+	function wantedAt(/** @type {any} */ item) {
+		const st = stateOf(item);
+		if (st.mode === 'pause') {
+			return st.at;
+		}
+		return st.mode === 'play' && st.start ? Math.max(0, (serverNow() - st.start) / 1000) : 0;
+	}
+	/** The last place the mouse was over the page, and when (TV controls show while it moves over a TV). */
+	const mouse = { x: -1, y: -1, at: 0 };
+	w.addEventListener(
+		'mousemove',
+		(/** @type {MouseEvent} */ e) => {
+			mouse.x = e.clientX;
+			mouse.y = e.clientY;
+			mouse.at = performance.now();
+		},
+		{ capture: true, passive: true },
+	);
+	/** How long a TV's controls stay after the mouse stops moving over it. */
+	const UI_MS = 2500;
+
 	/** Whether TVs show for you (SCE's settings). */
 	const tvsOn = () => !settings || settings.tvs !== false;
 	/**
@@ -86,7 +126,7 @@
 	/** What a TV shows now: its link, when it started, and whether you chose to watch it (a change fills it again). */
 	const showing = (/** @type {any} */ s) => {
 		const prop = s.item.Property || {};
-		return `${prop.Text || ''}|${prop.Text2 || ''}|${allowed(s)}|${always()[s.key] || ''}`;
+		return `${prop.Text || ''}|${prop.Text2 === 'off'}|${allowed(s)}|${always()[s.key] || ''}`;
 	};
 	/** Shows or hides every TV for you (the same switch as in SCE's settings), saying how to undo it. */
 	function setTVs(/** @type {boolean} */ on) {
@@ -168,8 +208,7 @@
 		if (!item || !tvsOn() || w.CurrentScreen !== 'ChatRoom' || typeof Zoom !== 'number') {
 			return;
 		}
-		// (the map shows everyone small: no TVs there, except for the character opened in it)
-		if (typeof w.ChatRoomMapViewIsActive === 'function' && w.ChatRoomMapViewIsActive() && !w.CurrentCharacter) {
+		if (blocked(C)) {
 			return;
 		}
 		// (the game doesn't draw others for someone who can't see)
@@ -291,20 +330,26 @@
 		const led = document.createElement('div');
 		led.className = 'sce-tv-led';
 		led.style.cssText = 'position:absolute;left:50%;bottom:2px;width:6px;height:3px;margin-left:-3px;border-radius:2px;background:#c43;';
-		// The only parts of a TV that take clicks, both for you only: its sound, and full screen. Faint until the mouse
-		// is on them; clicks on them never reach the game below.
+		// The controls, like a video player's: they show while the mouse moves over the TV and fade a moment after it
+		// stops (hidden, they take no clicks: the game gets them). Clicks on them never reach the game below.
+		const ui = document.createElement('div');
+		ui.className = 'sce-tv-ui';
+		ui.style.cssText = 'position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;';
+		const stop = (/** @type {HTMLElement} */ x) => {
+			for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'wheel', 'keydown']) {
+				x.addEventListener(type, (e) => e.stopPropagation());
+			}
+		};
 		const small = (/** @type {string} */ cls, /** @type {() => void} */ act) => {
 			const b = document.createElement('button');
 			b.className = cls;
 			b.type = 'button';
 			b.style.cssText =
-				'position:absolute;top:4px;z-index:1;width:26px;height:26px;padding:0;border:0;border-radius:50%;' +
-				'background:#000a;color:#fff;font:14px/26px sans-serif;cursor:pointer;pointer-events:auto;opacity:.35;';
+				'position:absolute;top:4px;width:26px;height:26px;padding:0;border:0;border-radius:50%;' +
+				'background:#000b;color:#fff;font:14px/26px sans-serif;cursor:pointer;pointer-events:auto;opacity:.85;';
 			b.addEventListener('mouseenter', () => (b.style.opacity = '1'));
-			b.addEventListener('mouseleave', () => (b.style.opacity = '.35'));
-			for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'wheel']) {
-				b.addEventListener(type, (e) => e.stopPropagation());
-			}
+			b.addEventListener('mouseleave', () => (b.style.opacity = '.85'));
+			stop(b);
 			b.addEventListener('click', (e) => {
 				e.stopPropagation();
 				e.preventDefault();
@@ -312,6 +357,48 @@
 			});
 			return b;
 		};
+		// The bottom bar, for whoever may change the TV (as for ⏻): pause or play, and where in the video, for everyone.
+		const bar = document.createElement('div');
+		bar.className = 'sce-tv-bar';
+		bar.style.cssText =
+			'position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:12px;' +
+			'background:#000b;color:#fff;font:11px sans-serif;pointer-events:auto;';
+		stop(bar);
+		const pause = small('sce-tv-pause', () => {
+			const C = ownerOf(key);
+			const s = shown.get(key);
+			if (C && s) {
+				togglePause(C, tvOf(C) || s.item, s);
+			}
+		});
+		pause.style.cssText += 'position:static;flex:none;width:22px;height:22px;font-size:12px;line-height:22px;background:transparent;';
+		const seek = document.createElement('input');
+		seek.className = 'sce-tv-seek';
+		seek.type = 'range';
+		seek.min = '0';
+		seek.max = '1000';
+		seek.step = '1';
+		seek.style.cssText = 'flex:1;min-width:0;height:14px;margin:0;cursor:pointer;accent-color:#c9a0ff;';
+		const time = document.createElement('span');
+		time.className = 'sce-tv-time';
+		time.style.cssText = 'flex:none;font-variant-numeric:tabular-nums;opacity:.9;';
+		seek.addEventListener('input', () => {
+			const s = shown.get(key);
+			if (s) {
+				s.dragging = true;
+				const d = lengthOf(s);
+				time.textContent = `${clock((Number(seek.value) / 1000) * d)} / ${clock(d)}`;
+			}
+		});
+		seek.addEventListener('change', () => {
+			const C = ownerOf(key);
+			const s = shown.get(key);
+			if (C && s) {
+				s.dragging = false;
+				seekTo(C, tvOf(C) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
+			}
+		});
+		bar.append(pause, seek, time);
 		const mute = small('sce-tv-mute', () => toggleTV(key));
 		mute.style.right = '34px';
 		const full = small('sce-tv-full', () => {
@@ -332,7 +419,8 @@
 			}
 		});
 		powerButton.textContent = '⏻';
-		el.append(screen, led, powerButton, off, mute, full);
+		ui.append(powerButton, off, mute, full, bar);
+		el.append(screen, led, ui);
 		return el;
 	}
 
@@ -342,8 +430,8 @@
 		const led = /** @type {HTMLElement} */ (s.el.querySelector('.sce-tv-led'));
 		const prop = s.item.Property || {};
 		const link = String(prop.Text || '');
-		const started = Number(prop.Text2) || 0;
 		s.playing = showing(s);
+		const paused = stateOf(s.item).mode === 'pause';
 		s.media = null;
 		s.volume = undefined;
 		screen.replaceChildren();
@@ -398,7 +486,7 @@
 			return;
 		}
 		const what = parseLink(link);
-		const from = started ? Math.max(0, (serverNow() - started) / 1000) : 0;
+		const from = wantedAt(s.item);
 		if (!what) {
 			const note = document.createElement('div');
 			note.textContent = "This link can't play here";
@@ -409,7 +497,7 @@
 		if ('yt' in what) {
 			const f = document.createElement('iframe');
 			const q = new URLSearchParams({
-				autoplay: '1',
+				autoplay: paused ? '0' : '1',
 				start: String(Math.floor(from)),
 				controls: '0',
 				rel: '0',
@@ -444,7 +532,7 @@
 		}
 		const v = document.createElement('video');
 		v.src = what.file;
-		v.autoplay = true;
+		v.autoplay = !paused;
 		v.loop = true;
 		v.playsInline = true;
 		v.preload = 'auto';
@@ -463,6 +551,9 @@
 		});
 		s.media = { video: v };
 		screen.append(v);
+		if (paused) {
+			return;
+		}
 		v.play().catch(() => {
 			// (the browser won't start sound before the page was clicked: start it quiet; the next check sets the sound)
 			v.muted = true;
@@ -509,22 +600,27 @@
 	 */
 	function keepInSync(/** @type {any} */ s) {
 		const m = s.media;
-		const started = Number((s.item.Property || {}).Text2) || 0;
-		if (!m || !started || performance.now() - (m.synced || 0) < SYNC_MS) {
+		const st = stateOf(s.item);
+		if (!m || st.mode === 'off' || (st.mode === 'play' && !st.start) || performance.now() - (m.synced || 0) < SYNC_MS) {
 			return;
 		}
 		m.synced = performance.now();
-		const since = Math.max(0, (serverNow() - started) / 1000);
+		const since = wantedAt(s.item);
+		const paused = st.mode === 'pause';
+		// (paused: held exactly there; playing: near enough, as a looping video goes round)
+		const off = paused ? 0.4 : SYNC_OFF;
 		if (m.video) {
 			const v = m.video;
 			if (!Number.isFinite(v.duration) || v.duration <= 0 || v.seeking || v.readyState < 1) {
 				return;
 			}
-			const want = since % v.duration;
-			if (Math.abs(v.currentTime - want) > SYNC_OFF && Math.abs(v.currentTime - want) < v.duration - SYNC_OFF) {
+			const want = paused ? Math.min(since, v.duration) : since % v.duration;
+			if (Math.abs(v.currentTime - want) > off && (paused || Math.abs(v.currentTime - want) < v.duration - off)) {
 				v.currentTime = want;
 			}
-			if (v.paused && !v.ended) {
+			if (paused && !v.paused) {
+				v.pause();
+			} else if (!paused && v.paused && !v.ended) {
 				v.play().catch(() => {});
 			}
 			return;
@@ -537,16 +633,24 @@
 				return;
 			}
 			const now = m.time + (m.state === 1 ? (performance.now() - m.at) / 1000 : 0);
-			const want = since % m.duration;
-			if (Math.abs(now - want) > SYNC_OFF && Math.abs(now - want) < m.duration - SYNC_OFF) {
+			const want = paused ? Math.min(since, m.duration) : since % m.duration;
+			if (Math.abs(now - want) > (paused ? 1 : SYNC_OFF) && (paused || Math.abs(now - want) < m.duration - SYNC_OFF)) {
 				send('seekTo', [want, true]);
 			}
-			if (m.state === 2 || m.state === 5 || m.state === -1) {
+			if (paused && m.state === 1) {
+				send('pauseVideo');
+			} else if (!paused && (m.state === 2 || m.state === 5 || m.state === -1)) {
 				send('playVideo');
 			}
 		}
 	}
 
+	/** Whether a character is on your blacklist or ghost list (/ignore): their TVs never show for you, nothing loads. */
+	function blocked(/** @type {any} */ C) {
+		const P = w.Player;
+		const listed = (/** @type {any} */ list) => Array.isArray(list) && !!C && list.includes(C.MemberNumber);
+		return !!C && !C.IsPlayer() && !!P && (listed(P.BlackList) || listed(P.GhostList));
+	}
 	/** The character a TV on screen belongs to (in the room), or null. */
 	function ownerOf(/** @type {string} */ key) {
 		const list = Array.isArray(w.ChatRoomCharacter) ? w.ChatRoomCharacter : [];
@@ -580,6 +684,112 @@
 		say(`${nick(w.Player)} turns ${tv} ${on ? 'on' : 'off'}.`);
 	}
 
+	/** Where a TV's video is now (seconds), as its player says. */
+	function timeOf(/** @type {any} */ s) {
+		const m = s.media;
+		if (m && m.video) {
+			return m.video.currentTime || 0;
+		}
+		if (m && m.yt && m.time >= 0) {
+			return m.time + (m.state === 1 ? (performance.now() - m.at) / 1000 : 0);
+		}
+		return 0;
+	}
+	/** How long a TV's video is (seconds); 0 while unknown, and for live streams. */
+	function lengthOf(/** @type {any} */ s) {
+		const m = s.media;
+		const d = m && m.video ? m.video.duration : m && m.yt ? m.duration : 0;
+		return Number.isFinite(d) && d > 0 ? d : 0;
+	}
+	/** 75 -> "1:15", 3725 -> "1:02:05". */
+	function clock(/** @type {number} */ sec) {
+		const t = Math.max(0, Math.floor(sec || 0));
+		const h = Math.floor(t / 3600);
+		const mm = Math.floor((t % 3600) / 60);
+		const ss = String(t % 60).padStart(2, '0');
+		return h ? `${h}:${String(mm).padStart(2, '0')}:${ss}` : `${mm}:${ss}`;
+	}
+	/** Sets where a TV is for everyone (Text2) and sends it to the room; this TV follows at once. */
+	function setPlace(/** @type {any} */ C, /** @type {any} */ item, /** @type {any} */ s, /** @type {string} */ text2) {
+		if (!(item.Property || {}).Text || !mayPower(C, item)) {
+			return;
+		}
+		item.Property = { ...(item.Property || {}), Text2: text2 };
+		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
+			w.ChatRoomCharacterItemUpdate(C, GROUP);
+		}
+		if (s.media) {
+			s.media.synced = 0;
+		}
+	}
+	/** Pauses a TV for everyone where it is now, or plays it on from there. */
+	function togglePause(/** @type {any} */ C, /** @type {any} */ item, /** @type {any} */ s) {
+		const st = stateOf(item);
+		if (st.mode === 'off') {
+			return;
+		}
+		if (st.mode === 'pause') {
+			setPlace(C, item, s, String(Math.round(serverNow() - st.at * 1000)));
+		} else {
+			const d = lengthOf(s);
+			const at = d ? wantedAt(item) % d : timeOf(s);
+			setPlace(C, item, s, `p${at.toFixed(2)}`);
+		}
+	}
+	/** Moves a TV to `sec` seconds into its video for everyone, paused or playing as it was. */
+	function seekTo(/** @type {any} */ C, /** @type {any} */ item, /** @type {any} */ s, /** @type {number} */ sec) {
+		const st = stateOf(item);
+		if (st.mode === 'off') {
+			return;
+		}
+		setPlace(C, item, s, st.mode === 'pause' ? `p${sec.toFixed(2)}` : String(Math.round(serverNow() - sec * 1000)));
+	}
+	/** Shows a TV's controls while the mouse moves over it (or one of them is in use), and fills its bar. */
+	function controls(/** @type {any} */ s) {
+		const ui = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-ui'));
+		if (!ui) {
+			return;
+		}
+		const r = s.el.getBoundingClientRect();
+		const over = mouse.x >= r.left && mouse.x <= r.right && mouse.y >= r.top && mouse.y <= r.bottom;
+		if (over && mouse.at > (s.uiAt || 0)) {
+			s.uiAt = mouse.at;
+		}
+		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && ui.matches(':hover'));
+		// (a small TV, as on the map, shows only ⛶: full screen has every control)
+		const tiny = !s.full && r.width < 170;
+		for (const cls of ['.sce-tv-power', '.sce-tv-off', '.sce-tv-mute']) {
+			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
+			if (b && tiny) {
+				b.hidden = true;
+			}
+		}
+		ui.style.opacity = show ? '1' : '0';
+		ui.style.visibility = show ? 'visible' : 'hidden';
+		const bar = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-bar'));
+		if (!bar) {
+			return;
+		}
+		const C = ownerOf(s.key);
+		const d = lengthOf(s);
+		const st = stateOf(s.item);
+		bar.hidden = tiny || !s.media || st.mode === 'off' || !mayPower(C, s.item);
+		bar.style.bottom = s.full ? '14px' : '6px';
+		bar.style.left = bar.style.right = s.full ? '14px' : '6px';
+		bar.style.fontSize = s.full ? '13px' : '11px';
+		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
+		const time = /** @type {HTMLElement} */ (bar.querySelector('.sce-tv-time'));
+		seek.hidden = !d;
+		label(/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')), st.mode === 'pause' ? '▶' : '⏸', st.mode === 'pause' ? 'Play (for everyone)' : 'Pause (for everyone)');
+		if (!s.dragging) {
+			const at = timeOf(s);
+			if (d) {
+				seek.value = String(Math.round(((at % d) / d) * 1000));
+			}
+			time.textContent = d ? `${clock(at % d)} / ${clock(d)}` : 'live';
+		}
+	}
+
 	/** A small button's label and tip, set only when they change. */
 	function label(/** @type {HTMLElement | null} */ b, /** @type {string} */ text, /** @type {string} */ tip) {
 		if (b && b.textContent !== text) {
@@ -601,6 +811,10 @@
 				b.style.top = s.full ? '10px' : '4px';
 			}
 		}
+		// (⛶ also while it asks whether to watch: on a small TV, the question is answered full screen)
+		if (full && s.on) {
+			full.hidden = false;
+		}
 		const powerButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-power'));
 		if (powerButton) {
 			const prop = s.item.Property || {};
@@ -620,7 +834,7 @@
 			mute.style.right = s.full ? '44px' : '34px';
 			full.style.right = s.full ? '10px' : '4px';
 		}
-		const v = volume(s.key);
+		const v = s.fresh === false ? 0 : volume(s.key);
 		if (!s.media || s.volume === v) {
 			return;
 		}
@@ -679,7 +893,11 @@
 			for (const [key, s] of shown) {
 				s.full = key === fullKey;
 				const fresh = s.full || now - s.seen < 400;
-				if (!at || now - s.seen > KEEP_MS) {
+				s.fresh = fresh;
+				const owner = fresh ? null : ownerOf(key);
+				const gone =
+					!fresh && (w.CurrentScreen !== 'ChatRoom' || !tvOf(owner) || !(tvOf(owner).Property || {}).Text || blocked(owner));
+				if (!at || gone || now - s.seen > KEEP_MS) {
 					s.el?.remove();
 					shown.delete(key);
 					continue;
@@ -711,6 +929,7 @@
 					});
 				}
 				sound(s);
+				controls(s);
 				keepInSync(s);
 			}
 		} catch (e) {
@@ -908,6 +1127,34 @@
 		say(`${nick(w.Player)} turns on ${whose()}.`);
 	}
 
+	// Joining a room pauses your own TV for everyone, where it was: the room gets time to react (and choose whether to
+	// watch) before anything plays; ▶ plays it. (Checked every second: a room change, a login, a reload into a room.)
+	let myRoom = /** @type {string | null} */ (null);
+	setInterval(() => {
+		try {
+			const room = (w.CurrentScreen === 'ChatRoom' && w.ChatRoomData && w.ChatRoomData.Name) || '';
+			if (room === myRoom || !working(FEATURE)) {
+				return;
+			}
+			myRoom = room;
+			const item = room ? tvOf(w.Player) : null;
+			if (!item || !(item.Property || {}).Text || stateOf(item).mode !== 'play') {
+				return;
+			}
+			const s = shown.get(myKey());
+			const d = s ? lengthOf(s) : 0;
+			const at = d ? wantedAt(item) % d : wantedAt(item);
+			item.Property = { ...item.Property, Text2: `p${at.toFixed(2)}` };
+			if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
+				w.ChatRoomCharacterItemUpdate(w.Player, GROUP);
+			}
+			if (typeof toast === 'function') {
+				toast('📺 Your TV is paused', 'It pauses when you join a room, so everyone has time to react. Press ▶ on it to play it for the room.', 8000);
+			}
+		} catch (e) {
+			problem(FEATURE, e);
+		}
+	}, 1000);
 	hookGame('ServerInfo', 0, FEATURE, (args, next) => {
 		const r = next(args);
 		const t = args[0] && args[0].Time;
