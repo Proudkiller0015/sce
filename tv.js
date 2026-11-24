@@ -454,10 +454,15 @@
 		log.replaceChildren(
 			...lines.map((n) => {
 				const c = /** @type {HTMLElement} */ (n.cloneNode(true));
-				// (the copies are only to read: no ids twice on the page)
-				c.removeAttribute('id');
-				for (const x of c.querySelectorAll('[id]')) {
-					x.removeAttribute('id');
+				// (the copies are only to read, and nothing may find them instead of the real lines: no ids and no
+				// data- marks. WCE removes its faded "sending..." line by its data-nonce, and found our copy first, so the
+				// real one stayed in the chat as a ghost)
+				for (const x of [c, ...c.querySelectorAll('*')]) {
+					for (const name of x.getAttributeNames()) {
+						if (name === 'id' || name.startsWith('data-')) {
+							x.removeAttribute(name);
+						}
+					}
 				}
 				return c;
 			}),
