@@ -5,7 +5,8 @@
 //
 // What plays is kept on the item, so everyone in the room with SCE sees the same thing:
 //   Text   the link
-//   Text2  when it started (ms), so everyone watches from the same moment
+//   Text2  when it started (ms, on the game server's clock), so everyone watches from the same moment; "off" when it
+//          is switched off (the link stays, so it can be switched on again)
 //   Text3  size and place: "<size %>,<right>,<down>" (in the character's own pixels)
 (() => {
 	'use strict';
@@ -16,7 +17,7 @@
 		return;
 	}
 	w.SCETVLoaded = true;
-	const { hookGame, problem, working, itemMenus } = kit;
+	const { hookGame, problem, working, itemMenus, settings, saveSettings, toast } = kit;
 	const FEATURE = 'TV';
 	const GROUP = 'ItemMisc';
 	const NAME = 'SlimeTV';
@@ -28,6 +29,78 @@
 	/** How long a TV stays on once its character is no longer drawn (opening a menu, another screen): then it stops. */
 	const KEEP_MS = 1500;
 	const MUTE_KEY = 'sce.tv.muted';
+	/** The TVs muted here one by one, by their character's member number (kept in this browser). */
+	const MUTED_TVS_KEY = 'sce.tv.mutedTVs';
+	/** How often each TV checks it is where everyone else is, and how far off it may be before it jumps back. */
+	const SYNC_MS = 2000;
+	const SYNC_OFF = 1.5;
+
+	// ---- One clock for everyone: the game server's. Each PC's clock may be off by seconds; the server tells the game
+	// its time when you connect and now and then after (ServerInfo), so the gap to this PC's clock is measured then.
+	let clockGap = 0;
+	/** The server's time now (this PC's clock until the server has told its own). */
+	const serverNow = () => Date.now() + clockGap;
+	/** Whether TVs show for you (SCE's settings). */
+	const tvsOn = () => !settings || settings.tvs !== false;
+	/**
+	 * What you chose to watch in this room, as "<member>|<link>": TVs are opt-in (SCE's settings, on by default), so
+	 * someone else's TV loads and plays nothing for you until you press Watch on it; a new link asks again, and so does
+	 * every room you enter. Your own TV plays without asking. With the setting off, every TV plays for you.
+	 */
+	const watching = new Set();
+	let watchedRoom = '';
+	/** People whose TVs you always or never want to see, in any room: { <member>: 'on' | 'off' } (kept in this browser). */
+	const ALWAYS_KEY = 'sce.tv.always';
+	/** @returns {Record<string, string>} */
+	function always() {
+		try {
+			const v = JSON.parse(localStorage.getItem(ALWAYS_KEY) || '{}');
+			return v && typeof v === 'object' ? v : {};
+		} catch {
+			return {};
+		}
+	}
+	function setAlways(/** @type {string} */ key, /** @type {'on' | 'off' | ''} */ choice) {
+		const all = always();
+		if (choice) {
+			all[key] = choice;
+		} else {
+			delete all[key];
+		}
+		try {
+			localStorage.setItem(ALWAYS_KEY, JSON.stringify(all));
+		} catch {
+			// (blocked storage: the choice holds until this TV's next change)
+		}
+	}
+	const myKey = () => String(w.Player && w.Player.MemberNumber);
+	/** Whether a TV on screen may play for you. */
+	function allowed(/** @type {any} */ s) {
+		const link = String((s.item.Property || {}).Text || '');
+		const choice = always()[s.key];
+		if (s.key === myKey() || choice === 'on') {
+			return true;
+		}
+		return choice !== 'off' && (!(settings && settings.tvsAsk !== false) || watching.has(`${s.key}|${link}`));
+	}
+	/** What a TV shows now: its link, when it started, and whether you chose to watch it (a change fills it again). */
+	const showing = (/** @type {any} */ s) => {
+		const prop = s.item.Property || {};
+		return `${prop.Text || ''}|${prop.Text2 || ''}|${allowed(s)}|${always()[s.key] || ''}`;
+	};
+	/** Shows or hides every TV for you (the same switch as in SCE's settings), saying how to undo it. */
+	function setTVs(/** @type {boolean} */ on) {
+		if (!settings) {
+			return;
+		}
+		settings.tvs = on;
+		if (typeof saveSettings === 'function') {
+			saveSettings();
+		}
+		if (!on && typeof toast === 'function') {
+			toast('🙈 TVs hidden for you', "Only for you: everyone else still sees them. To see them again: SCE's settings (Settings > Extensions), or the menu of any TV.", 9000);
+		}
+	}
 
 	// ---- Links
 	/**
@@ -92,7 +165,7 @@
 			return;
 		}
 		const item = tvOf(C);
-		if (!item || w.CurrentScreen !== 'ChatRoom' || typeof Zoom !== 'number') {
+		if (!item || !tvsOn() || w.CurrentScreen !== 'ChatRoom' || typeof Zoom !== 'number') {
 			return;
 		}
 		// (the map shows everyone small: no TVs there, except for the character opened in it)
@@ -118,7 +191,7 @@
 		const cy = TV.y + place.y;
 		const key = String(C.MemberNumber ?? `npc${C.CharacterID}`);
 		const box = [toX(cx - width / 2), toY(cy - height / 2), toX(cx + width / 2), toY(cy + height / 2)];
-		const now = { box, scale: scale * (place.size / 100), item, seen: performance.now() };
+		const now = { key, box, scale: scale * (place.size / 100), item, seen: performance.now() };
 		// (the same record every frame: the player's callbacks hold on to it)
 		const was = shown.get(key);
 		if (was) {
@@ -128,9 +201,12 @@
 		}
 	}
 
-	/** The volume for TVs (0-1): the game's sound volume, lower for someone who can't hear well, 0 when muted here. */
-	function volume() {
-		if (muted()) {
+	/**
+	 * A TV's volume (0-1): the game's sound volume, lower for someone who can't hear well, 0 when TVs are muted here or
+	 * this one is.
+	 */
+	function volume(/** @type {string} */ key) {
+		if (muted() || mutedTVs().has(key)) {
 			return 0;
 		}
 		const audio = w.Player && w.Player.AudioSettings;
@@ -146,6 +222,42 @@
 			return false;
 		}
 	}
+	/** @returns {Set<string>} */
+	function mutedTVs() {
+		try {
+			const list = JSON.parse(localStorage.getItem(MUTED_TVS_KEY) || '[]');
+			return new Set(Array.isArray(list) ? list.map(String) : []);
+		} catch {
+			return new Set();
+		}
+	}
+	/** Mutes one TV here, or lets it be heard again. */
+	function toggleTV(/** @type {string} */ key) {
+		const set = mutedTVs();
+		if (!set.delete(key)) {
+			set.add(key);
+		}
+		try {
+			localStorage.setItem(MUTED_TVS_KEY, JSON.stringify([...set]));
+		} catch {
+			status = "This browser can't keep that setting.";
+		}
+	}
+
+	/** The TV shown full screen for you (its character's member number), or ''. */
+	let fullKey = '';
+	// Esc closes full screen (caught before the game, which takes every Esc for itself).
+	w.addEventListener(
+		'keydown',
+		(/** @type {KeyboardEvent} */ e) => {
+			if (fullKey && e.key === 'Escape') {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				fullKey = '';
+			}
+		},
+		true,
+	);
 
 	/** Makes (or finds) the layer the TVs go in. */
 	function tvLayer() {
@@ -165,8 +277,8 @@
 		return { layer, k: r.width / (Number(/** @type {HTMLCanvasElement} */ (canvas).width) || 2000) };
 	}
 
-	/** A TV's page element: the frame, and the screen inside it. */
-	function makeTV() {
+	/** A TV's page element: the frame, the screen inside it, and its own mute button for you. */
+	function makeTV(/** @type {string} */ key) {
 		const el = document.createElement('div');
 		el.className = 'sce-tv';
 		el.style.cssText =
@@ -179,7 +291,48 @@
 		const led = document.createElement('div');
 		led.className = 'sce-tv-led';
 		led.style.cssText = 'position:absolute;left:50%;bottom:2px;width:6px;height:3px;margin-left:-3px;border-radius:2px;background:#c43;';
-		el.append(screen, led);
+		// The only parts of a TV that take clicks, both for you only: its sound, and full screen. Faint until the mouse
+		// is on them; clicks on them never reach the game below.
+		const small = (/** @type {string} */ cls, /** @type {() => void} */ act) => {
+			const b = document.createElement('button');
+			b.className = cls;
+			b.type = 'button';
+			b.style.cssText =
+				'position:absolute;top:4px;z-index:1;width:26px;height:26px;padding:0;border:0;border-radius:50%;' +
+				'background:#000a;color:#fff;font:14px/26px sans-serif;cursor:pointer;pointer-events:auto;opacity:.35;';
+			b.addEventListener('mouseenter', () => (b.style.opacity = '1'));
+			b.addEventListener('mouseleave', () => (b.style.opacity = '.35'));
+			for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'wheel']) {
+				b.addEventListener(type, (e) => e.stopPropagation());
+			}
+			b.addEventListener('click', (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+				act();
+			});
+			return b;
+		};
+		const mute = small('sce-tv-mute', () => toggleTV(key));
+		mute.style.right = '34px';
+		const full = small('sce-tv-full', () => {
+			fullKey = fullKey === key ? '' : key;
+		});
+		full.style.right = '4px';
+		// (hides every TV for you alone, for anyone who never finds the setting)
+		const off = small('sce-tv-off', () => setTVs(false));
+		off.style.right = '64px';
+		off.textContent = '🙈';
+		off.title = 'Hide all TVs (only for you: everyone else still sees them)';
+		// (on and off for everyone in the room, for whoever may change the TV)
+		const powerButton = small('sce-tv-power', () => {
+			const C = ownerOf(key);
+			const s = shown.get(key);
+			if (C && s) {
+				power(C, tvOf(C) || s.item, !s.on);
+			}
+		});
+		powerButton.textContent = '⏻';
+		el.append(screen, led, powerButton, off, mute, full);
 		return el;
 	}
 
@@ -190,16 +343,62 @@
 		const prop = s.item.Property || {};
 		const link = String(prop.Text || '');
 		const started = Number(prop.Text2) || 0;
-		s.playing = `${link}|${started}`;
+		s.playing = showing(s);
 		s.media = null;
 		s.volume = undefined;
 		screen.replaceChildren();
-		led.style.background = link ? '#3c6' : '#c43';
-		if (!link) {
+		const on = !!link && prop.Text2 !== 'off';
+		s.on = on;
+		led.style.background = on ? '#3c6' : '#c43';
+		if (!on) {
+			return;
+		}
+		if (!allowed(s)) {
+			// Someone else's TV: nothing of it loads until you choose to watch it.
+			const ask = document.createElement('div');
+			ask.className = 'sce-tv-ask';
+			ask.style.cssText =
+				'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ccc;font:13px sans-serif;text-align:center;padding:30px 6px 6px;';
+			const C = ownerOf(s.key);
+			const who = C ? `${nick(C)}'s` : "This person's";
+			const choice = (/** @type {string} */ text, /** @type {string} */ cls, /** @type {string} */ tip, /** @type {() => void} */ act) => {
+				const b = document.createElement('button');
+				b.className = cls;
+				b.type = 'button';
+				b.textContent = text;
+				b.title = tip;
+				b.style.cssText =
+					'pointer-events:auto;cursor:pointer;border:0;border-radius:14px;padding:5px 11px;background:#3a3a46;color:#fff;font:13px sans-serif;';
+				for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'wheel']) {
+					b.addEventListener(type, (e) => e.stopPropagation());
+				}
+				b.addEventListener('click', (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					act();
+				});
+				return b;
+			};
+			const note = document.createElement('div');
+			const row = document.createElement('div');
+			row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:center;';
+			if (always()[s.key] === 'off') {
+				note.textContent = `🚫 You chose never to see ${who} TV`;
+				row.append(choice('Undo', 'sce-tv-undo', 'Ask me again about their TV', () => setAlways(s.key, '')));
+			} else {
+				note.textContent = `📺 ${who} TV is playing something`;
+				row.append(
+					choice('▶ Watch', 'sce-tv-watch', 'Watch this, only for you (a new room asks again)', () => watching.add(`${s.key}|${link}`)),
+					choice('Always', 'sce-tv-always', "Always play this person's TVs for you, in every room", () => setAlways(s.key, 'on')),
+					choice('Never', 'sce-tv-never', "Never show this person's TVs to you", () => setAlways(s.key, 'off')),
+				);
+			}
+			ask.append(note, row);
+			screen.append(ask);
 			return;
 		}
 		const what = parseLink(link);
-		const from = started ? Math.max(0, (Date.now() - started) / 1000) : 0;
+		const from = started ? Math.max(0, (serverNow() - started) / 1000) : 0;
 		if (!what) {
 			const note = document.createElement('div');
 			note.textContent = "This link can't play here";
@@ -220,19 +419,26 @@
 				playlist: what.yt,
 				origin: location.origin,
 			});
-			f.src = `https://www.youtube-nocookie.com/embed/${what.yt}?${q}`;
+			f.src = `${YT_ORIGIN}/embed/${what.yt}?${q}`;
 			f.allow = 'autoplay; encrypted-media';
 			f.referrerPolicy = 'strict-origin-when-cross-origin';
 			f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;';
 			f.addEventListener('load', () => {
-				// (the player takes commands once it has loaded: tell it the volume a few times while it starts)
+				// (nothing is sent before the player's page has loaded: until then the frame is still a blank page of
+				// this site, and the browser refuses messages addressed to YouTube with a console error)
+				if (s.media) {
+					s.media.ready = true;
+				}
+				// (the player takes commands once it has loaded: ask it to report where it is, and tell it the volume a
+				// few times while it starts)
 				for (const t of [0, 1000, 3000]) {
 					setTimeout(() => {
 						s.volume = undefined;
+						f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT_ORIGIN);
 					}, t);
 				}
 			});
-			s.media = { yt: f };
+			s.media = { yt: f, time: -1, duration: 0, state: -1, at: 0, synced: 0 };
 			screen.append(f);
 			return;
 		}
@@ -264,9 +470,157 @@
 		});
 	}
 
+	const YT_ORIGIN = 'https://www.youtube-nocookie.com';
+	// What each YouTube player reports (where it is, how long the video is, playing or not).
+	w.addEventListener('message', (e) => {
+		if (e.origin !== YT_ORIGIN || typeof e.data !== 'string') {
+			return;
+		}
+		for (const s of shown.values()) {
+			const m = s.media;
+			if (!m || !m.yt || e.source !== m.yt.contentWindow) {
+				continue;
+			}
+			try {
+				const d = JSON.parse(e.data);
+				const info = d && d.info;
+				if (info && typeof info === 'object') {
+					if (typeof info.currentTime === 'number') {
+						m.time = info.currentTime;
+						m.at = performance.now();
+					}
+					if (typeof info.duration === 'number') {
+						m.duration = info.duration;
+					}
+					if (typeof info.playerState === 'number') {
+						m.state = info.playerState;
+					}
+				}
+			} catch {
+				// (not one of the player's reports)
+			}
+		}
+	});
+
+	/**
+	 * Keeps a TV where everyone else is: where the video should be now (from when it started, on the server's clock,
+	 * round again for a looping one); a TV that fell behind or ran ahead by more than SYNC_OFF jumps there, and one that
+	 * stopped plays again. Live streams have no length and are left alone.
+	 */
+	function keepInSync(/** @type {any} */ s) {
+		const m = s.media;
+		const started = Number((s.item.Property || {}).Text2) || 0;
+		if (!m || !started || performance.now() - (m.synced || 0) < SYNC_MS) {
+			return;
+		}
+		m.synced = performance.now();
+		const since = Math.max(0, (serverNow() - started) / 1000);
+		if (m.video) {
+			const v = m.video;
+			if (!Number.isFinite(v.duration) || v.duration <= 0 || v.seeking || v.readyState < 1) {
+				return;
+			}
+			const want = since % v.duration;
+			if (Math.abs(v.currentTime - want) > SYNC_OFF && Math.abs(v.currentTime - want) < v.duration - SYNC_OFF) {
+				v.currentTime = want;
+			}
+			if (v.paused && !v.ended) {
+				v.play().catch(() => {});
+			}
+			return;
+		}
+		if (m.yt && m.ready && m.duration > 0 && m.time >= 0) {
+			const send = (/** @type {string} */ func, /** @type {any[]} */ args = []) =>
+				m.yt.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN);
+			// (states: 1 playing, 2 paused, 3 loading, 5 not started)
+			if (m.state === 3) {
+				return;
+			}
+			const now = m.time + (m.state === 1 ? (performance.now() - m.at) / 1000 : 0);
+			const want = since % m.duration;
+			if (Math.abs(now - want) > SYNC_OFF && Math.abs(now - want) < m.duration - SYNC_OFF) {
+				send('seekTo', [want, true]);
+			}
+			if (m.state === 2 || m.state === 5 || m.state === -1) {
+				send('playVideo');
+			}
+		}
+	}
+
+	/** The character a TV on screen belongs to (in the room), or null. */
+	function ownerOf(/** @type {string} */ key) {
+		const list = Array.isArray(w.ChatRoomCharacter) ? w.ChatRoomCharacter : [];
+		return list.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === key) || null;
+	}
+	/**
+	 * Whether you may switch a character's TV on and off, as the game lets you change their items: always your own; someone
+	 * else's when they let you use items on them and the TV isn't blocked or limited for you.
+	 */
+	function mayPower(/** @type {any} */ C, /** @type {any} */ item) {
+		if (!C || !item) {
+			return false;
+		}
+		if (C.IsPlayer()) {
+			return true;
+		}
+		const blocked = typeof w.InventoryBlockedOrLimited === 'function' && w.InventoryBlockedOrLimited(C, item);
+		return C.AllowItem !== false && !blocked;
+	}
+	/** Switches a TV off for everyone (its link stays), or on again from the start, and tells the room. */
+	function power(/** @type {any} */ C, /** @type {any} */ item, /** @type {boolean} */ on) {
+		const prop = item.Property || {};
+		if (!prop.Text || !mayPower(C, item)) {
+			return;
+		}
+		item.Property = { ...prop, Text2: on ? String(Math.round(serverNow())) : 'off' };
+		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
+			w.ChatRoomCharacterItemUpdate(C, GROUP);
+		}
+		const tv = C.IsPlayer() ? 'the TV' : `${nick(C)}'s TV`;
+		say(`${nick(w.Player)} turns ${tv} ${on ? 'on' : 'off'}.`);
+	}
+
+	/** A small button's label and tip, set only when they change. */
+	function label(/** @type {HTMLElement | null} */ b, /** @type {string} */ text, /** @type {string} */ tip) {
+		if (b && b.textContent !== text) {
+			b.textContent = text;
+			b.title = tip;
+		}
+	}
 	/** Sets a TV's sound when it changed. */
 	function sound(/** @type {any} */ s) {
-		const v = volume();
+		// (its buttons: muted here or not, and full screen or back; shown only while it plays, and always in full screen)
+		const off = mutedTVs().has(s.key);
+		const mute = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-mute'));
+		const full = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-full'));
+		label(mute, off ? '🔇' : '🔊', off ? 'This TV is muted for you: click to hear it' : 'Mute this TV for you');
+		label(full, s.full ? '✕' : '⛶', s.full ? 'Close full screen (Esc)' : 'Full screen (for you)');
+		for (const b of [mute, full]) {
+			if (b) {
+				b.hidden = !s.media && !s.full;
+				b.style.top = s.full ? '10px' : '4px';
+			}
+		}
+		const powerButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-power'));
+		if (powerButton) {
+			const prop = s.item.Property || {};
+			label(powerButton, '⏻', s.on ? 'Turn this TV off (for everyone)' : 'Turn this TV on again (for everyone)');
+			powerButton.hidden = !prop.Text || !mayPower(ownerOf(s.key), s.item);
+			powerButton.style.top = s.full ? '10px' : '4px';
+			powerButton.style.right = s.full ? '112px' : '94px';
+			powerButton.style.color = s.on ? '#fff' : '#f66';
+		}
+		const offButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-off'));
+		if (offButton) {
+			offButton.hidden = !(s.item.Property || {}).Text && !s.full;
+			offButton.style.top = s.full ? '10px' : '4px';
+			offButton.style.right = s.full ? '78px' : '64px';
+		}
+		if (mute && full) {
+			mute.style.right = s.full ? '44px' : '34px';
+			full.style.right = s.full ? '10px' : '4px';
+		}
+		const v = volume(s.key);
 		if (!s.media || s.volume === v) {
 			return;
 		}
@@ -274,9 +628,9 @@
 		if (s.media.video) {
 			s.media.video.volume = v;
 			s.media.video.muted = v === 0;
-		} else if (s.media.yt && s.media.yt.contentWindow) {
+		} else if (s.media.yt && s.media.ready && s.media.yt.contentWindow) {
 			const send = (/** @type {string} */ func, /** @type {any[]} */ args = []) =>
-				s.media.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), 'https://www.youtube-nocookie.com');
+				s.media.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN);
 			send('setVolume', [Math.round(v * 100)]);
 			send(v === 0 ? 'mute' : 'unMute');
 		}
@@ -285,7 +639,7 @@
 	/** Every frame: puts each TV drawn lately where its character is, and stops those no longer drawn. */
 	function frame() {
 		requestAnimationFrame(frame);
-		if (!working(FEATURE)) {
+		if (!working(FEATURE) || !tvsOn()) {
 			for (const s of shown.values()) {
 				s.el?.remove();
 			}
@@ -294,34 +648,70 @@
 		}
 		try {
 			const now = performance.now();
+			// (a new room asks again)
+			const room = (w.ChatRoomData && w.ChatRoomData.Name) || '';
+			if (room !== watchedRoom) {
+				watchedRoom = room;
+				watching.clear();
+			}
 			const at = shown.size ? tvLayer() : null;
+			// A TV in full screen stays while its character is in the room wearing it, drawn or not (a menu over the
+			// room, for one); then it closes.
+			const fullTV = fullKey ? shown.get(fullKey) : null;
+			if (fullTV) {
+				const C = w.CurrentScreen === 'ChatRoom' && Array.isArray(w.ChatRoomCharacter)
+					? w.ChatRoomCharacter.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === fullKey)
+					: null;
+				const item = tvOf(C);
+				if (item) {
+					fullTV.item = item;
+					fullTV.seen = now;
+				} else {
+					fullKey = '';
+				}
+			} else {
+				fullKey = '';
+			}
+			if (at) {
+				// (over the game's own page elements while a TV fills the screen)
+				at.layer.style.zIndex = fullKey ? '2147483000' : '';
+			}
 			for (const [key, s] of shown) {
-				const fresh = now - s.seen < 400;
+				s.full = key === fullKey;
+				const fresh = s.full || now - s.seen < 400;
 				if (!at || now - s.seen > KEEP_MS) {
 					s.el?.remove();
 					shown.delete(key);
 					continue;
 				}
 				if (!s.el) {
-					s.el = makeTV();
+					s.el = makeTV(key);
 					s.el.dataset.member = key;
 					at.layer.append(s.el);
 				}
-				const prop = s.item.Property || {};
-				if (s.playing !== `${prop.Text || ''}|${Number(prop.Text2) || 0}`) {
+				if (s.playing !== showing(s)) {
 					fill(s);
 				}
 				s.el.style.visibility = fresh ? 'visible' : 'hidden';
-				const [x0, y0, x1, y1] = s.box.map((v) => v * at.k);
-				const bezel = Math.max(2, TV.bezel * s.scale * at.k);
-				Object.assign(s.el.style, {
-					left: `${x0}px`,
-					top: `${y0}px`,
-					width: `${x1 - x0}px`,
-					height: `${y1 - y0}px`,
-					padding: `${bezel}px ${bezel}px ${bezel * 1.4}px`,
-				});
+				if (s.full) {
+					// Fills the game's screen, on top of everything; clicks on it don't reach the game.
+					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '2', pointerEvents: 'auto', borderRadius: '0' });
+				} else {
+					const [x0, y0, x1, y1] = s.box.map((v) => v * at.k);
+					const bezel = Math.max(2, TV.bezel * s.scale * at.k);
+					Object.assign(s.el.style, {
+						left: `${x0}px`,
+						top: `${y0}px`,
+						width: `${x1 - x0}px`,
+						height: `${y1 - y0}px`,
+						padding: `${bezel}px ${bezel}px ${bezel * 1.4}px`,
+						zIndex: '',
+						pointerEvents: 'none',
+						borderRadius: '6px',
+					});
+				}
 				sound(s);
+				keepInSync(s);
 			}
 		} catch (e) {
 			problem(FEATURE, e);
@@ -364,6 +754,11 @@
 			w.ServerSend('ChatRoomChat', { Content: 'Beep', Type: 'Action', Dictionary: [{ Tag: 'Beep', Text: text }] });
 		}
 	}
+	/** The member number of whose TV the menu shows (how mutes are kept). */
+	function menuKey() {
+		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
+		return C ? String(C.MemberNumber ?? `npc${C.CharacterID}`) : '';
+	}
 	const nick = (/** @type {any} */ C) => (typeof w.CharacterNickname === 'function' ? w.CharacterNickname(C) : C.Name);
 	function whose() {
 		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
@@ -381,6 +776,8 @@
 		right: [1811, 650, 89, 64],
 		reset: [1100, 760, 380, 64],
 		mute: [1520, 760, 380, 64],
+		muteThis: [1100, 840, 380, 56],
+		tvs: [1520, 840, 380, 56],
 	};
 	const inside = (/** @type {number[]} */ b) => typeof w.MouseIn === 'function' && w.MouseIn(b[0], b[1], b[2], b[3]);
 
@@ -413,7 +810,7 @@
 			w.ElementPosition('SCETVLink', 1500, 470, 800, 60);
 			const B = BUTTONS;
 			w.DrawButton(...B.play, '▶ Play', 'White');
-			w.DrawButton(...B.off, '■ Turn off', item.Property && item.Property.Text ? 'White' : '#bbb');
+			w.DrawButton(...B.off, '■ Turn off', item.Property && item.Property.Text && item.Property.Text2 !== 'off' ? 'White' : '#bbb');
 			w.DrawButton(...B.smaller, '−', place.size > SIZE.min ? 'White' : '#bbb');
 			w.DrawText(`Size ${place.size}%`, 1290, 682, 'White', 'Black');
 			w.DrawButton(...B.bigger, '+', place.size < SIZE.max ? 'White' : '#bbb');
@@ -423,9 +820,12 @@
 			w.DrawButton(...B.right, '→', 'White');
 			w.DrawButton(...B.reset, 'Reset size and place', 'White');
 			w.DrawButton(...B.mute, muted() ? '🔇 TV sound off (for me)' : '🔊 TV sound on (for me)', 'White');
-			w.DrawText('A YouTube link, or a link to a video file (.mp4, .webm)', 1500, 870, 'White', 'Black');
-			if (status) {
-				w.DrawText(status, 1500, 930, '#ffd479', 'Black');
+			const owner = menuKey();
+			w.DrawButton(...B.muteThis, mutedTVs().has(owner) ? '🔇 This TV muted for me' : '🔊 Mute this TV (for me)', 'White');
+			w.DrawButton(...B.tvs, tvsOn() ? '🙈 Hide all TVs (for me)' : '📺 Show TVs again (for me)', 'White');
+			w.DrawText('A YouTube link, or a link to a video file (.mp4, .webm)', 1500, 935, 'White', 'Black');
+			if (status || !tvsOn()) {
+				w.DrawText(status || 'TVs are switched off in your SCE settings: others still see this one.', 1500, 975, '#ffd479', 'Black');
 			}
 		},
 		Click(/** @type {any} */ data, /** @type {Function} */ next) {
@@ -440,8 +840,9 @@
 			if (inside(B.play)) {
 				play();
 			} else if (inside(B.off)) {
-				if (item.Property && item.Property.Text) {
-					change({ Text: '', Text2: '' });
+				if (item.Property && item.Property.Text && item.Property.Text2 !== 'off') {
+					// (the link stays: ⏻ on the TV or Play switches it on again)
+					change({ Text2: 'off' });
 					status = 'The TV is off.';
 					say(`${nick(w.Player)} turns ${whose()} off.`);
 				}
@@ -459,6 +860,10 @@
 				move(place.size, place.x, Math.min(MOVE.max, place.y + MOVE.step));
 			} else if (inside(B.reset)) {
 				move(100, 0, 0);
+			} else if (inside(B.tvs)) {
+				setTVs(!tvsOn());
+			} else if (inside(B.muteThis)) {
+				toggleTV(menuKey());
 			} else if (inside(B.mute)) {
 				try {
 					localStorage.setItem(MUTE_KEY, muted() ? '0' : '1');
@@ -498,11 +903,19 @@
 			status = "That isn't a YouTube link or a link to a video file.";
 			return;
 		}
-		change({ Text: link, Text2: String(Date.now()) });
+		change({ Text: link, Text2: String(Math.round(serverNow())) });
 		status = 'Playing.';
 		say(`${nick(w.Player)} turns on ${whose()}.`);
 	}
 
+	hookGame('ServerInfo', 0, FEATURE, (args, next) => {
+		const r = next(args);
+		const t = args[0] && args[0].Time;
+		if (typeof t === 'number' && Number.isFinite(t)) {
+			clockGap = t - Date.now();
+		}
+		return r;
+	});
 	if (hookGame('DrawCharacter', 0, FEATURE, (args, next) => {
 		const r = next(args);
 		noteDrawn(args);
@@ -510,5 +923,5 @@
 	})) {
 		requestAnimationFrame(frame);
 	}
-	w.SCETV = { parseLink, placeOf, shown };
+	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey };
 })();

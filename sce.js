@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.0';
+	const VERSION = '1.8.1';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -1409,8 +1409,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean }} */
-	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean, tvs: boolean, tvsAsk: boolean }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true, tvs: true, tvsAsk: true };
 	try {
 		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
 		for (const k of /** @type {(keyof typeof settings)[]} */ (Object.keys(settings))) {
@@ -1473,6 +1473,12 @@
 		hookGame('InterfaceTextGet', 0, 'Badge', (args, next) =>
 			args[0] === `PreviewIcon${BADGE}` ? ADDON_NAME : next(args),
 		);
+		// The canvas draws badges by their path in the game's folder (DrawPreviewIcons), where ours isn't: it gets ours.
+		if (gameFunction('DrawGetImage')) {
+			hookGame('DrawGetImage', 0, 'Badge', (args, next) =>
+				typeof args[0] === 'string' && /^(?:\.\/)?Icons\/Previews\/SCE\.png$/.test(args[0]) ? next([ICON, ...args.slice(1)]) : next(args),
+			);
+		}
 		// Item buttons made of page elements load a named badge straight from the game's folder, where ours isn't: they
 		// get it with its own picture (the canvas draws it through the picture hook)
 		if (gameFunction('ElementButton._ParseIcons')) {
@@ -1552,7 +1558,7 @@
 		const EXIT = [1815, 75, 90, 90];
 		const LEFT = 500;
 		const TOP = 220;
-		const ROW = 80;
+		const ROW = 66;
 		/** @type {[string, keyof typeof settings, (keyof typeof settings)?][]} Label, setting, and the setting it sits under. */
 		const boxes = [
 			['Add the SCE activities to the activity menu', 'activities'],
@@ -1561,21 +1567,23 @@
 			['Show what is new after an update', 'updateNotes'],
 			['Add the extra clothing slots (from the next reload)', 'extraSlots'],
 			["With other add-ons' items in them too (from the next reload)", 'slotAddOnItems', 'extraSlots'],
+			["Show TVs and play their sound (off: nobody's TV shows for you)", 'tvs'],
+			["Ask before other people's TVs play (off: see every TV)", 'tvsAsk', 'tvs'],
 		];
 		/** A box's left edge: one under another is set in. */
 		const boxLeft = (/** @type {any} */ under) => (under ? LEFT + 80 : LEFT);
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
-		const RESTORE = [LEFT, TOP + boxes.length * ROW + 100, 640, 64];
+		const RESTORE = [LEFT, TOP + boxes.length * ROW + 80, 640, 64];
 		/** @type {[number, number, number, number]} */
-		const CLOTHES_LIST = [LEFT, RESTORE[1] + 100, 300, 64];
+		const CLOTHES_LIST = [LEFT, RESTORE[1] + 90, 300, 64];
 		/** @type {[number, number, number, number]} */
-		const ACTIVITY_LIST = [LEFT + 340, RESTORE[1] + 100, 300, 64];
+		const ACTIVITY_LIST = [LEFT + 340, RESTORE[1] + 90, 300, 64];
 		/** @type {[number, number, number, number]} */
-		const CONTRIBUTE = [LEFT + 680, RESTORE[1] + 100, 240, 64];
+		const CONTRIBUTE = [LEFT + 680, RESTORE[1] + 90, 240, 64];
 		/** @type {[number, number, number, number]} */
-		const CREDITS = [LEFT + 940, RESTORE[1] + 100, 200, 64];
+		const CREDITS = [LEFT + 940, RESTORE[1] + 90, 200, 64];
 		/** @type {[number, number, number, number]} */
-		const DEVS = [LEFT + 1160, RESTORE[1] + 100, 240, 64];
+		const DEVS = [LEFT + 1160, RESTORE[1] + 90, 240, 64];
 		/** @type {[number, number, number, number]} A small link to the repository, by the title. */
 		const REPO = [1560, 95, 220, 56];
 		/** @type {[number, number, number, number]} The contribute page's link to the guide. */
@@ -2225,7 +2233,7 @@
 		outfits: () => outfitChoices,
 		slots: slotGroups,
 		putBack: () => (working('Restore') ? putBack() : []),
-		kit: { hookGame, problem, working, gameFunction, settings, itemMenus, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
+		kit: { hookGame, problem, working, gameFunction, settings, saveSettings, toast, itemMenus, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
 	};
 	start();
 	startExtras();

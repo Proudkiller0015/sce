@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.1",
+		"title": "Slime Clothing Extension v1.8.1",
+		"text": "📺 TVs are opt-in: someone else's TV plays nothing for you until you press ▶ Watch on it (asked again in each room), or choose Always or Never for that person; switch this off in SCE's settings to see every TV. ⏻ on a TV turns it off or on for everyone (if you may change it). TVs stay in sync: every few seconds each TV checks it is where everyone else's is (on the game server's clock) and catches up if it fell behind or stopped. Watch a TV full screen with the ⛶ in its corner (the small ✕ or Esc closes it), mute one TV just for you with its 🔊, or hide all TVs just for you with its 🙈 (or in its menu, or SCE's settings). And no more console errors from YouTube TVs."
+	},
+	{
 		"id": "1.8.0",
 		"title": "Slime Clothing Extension v1.8.0",
 		"text": "📺 New HD TV (Misc items): paste a YouTube link or a link to a video file (.mp4, .webm) in its menu and it plays for everyone in the room with SCE, all from the same moment. Make it bigger or smaller and move it from the same menu; turn the TV sound off for yourself there too."
