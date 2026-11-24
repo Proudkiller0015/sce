@@ -343,6 +343,57 @@
 			// (blocked storage: it stays there until the page reloads)
 		}
 	}
+	/**
+	 * The TV floating over every tab and program, in the browser's own always-on-top window (Chrome, Edge, Opera; not
+	 * Firefox): { win, key }, or null. It stays while its character is in the room with the TV on, like the popped-out one.
+	 */
+	/** @type {{ win: any, key: string } | null} */
+	let floating = null;
+	/** Where the mouse last moved in that window (its controls show while it moves, as on the page). */
+	const winMouse = { x: -1, y: -1, at: 0 };
+	const canFloat = () => 'documentPictureInPicture' in w;
+	/** Opens that window with this TV in it, or closes it if it holds this TV already. Needs a click (the browser's rule). */
+	async function floatTV(/** @type {string} */ key) {
+		if (floating) {
+			const was = floating.key;
+			floating.win.close();
+			if (was === key) {
+				return;
+			}
+		}
+		const s = shown.get(key);
+		if (!s || !s.el || !canFloat()) {
+			return;
+		}
+		const win = await w.documentPictureInPicture.requestWindow({ width: 480, height: 280 });
+		win.document.title = 'TV';
+		win.document.body.style.cssText = 'margin:0;background:#000;overflow:hidden;';
+		win.addEventListener('message', onPlayerMessage);
+		win.addEventListener(
+			'mousemove',
+			(/** @type {MouseEvent} */ e) => {
+				winMouse.x = e.clientX;
+				winMouse.y = e.clientY;
+				winMouse.at = performance.now();
+			},
+			{ capture: true, passive: true },
+		);
+		// (closed by its own ✕, or by us: the TV goes back on its character)
+		win.addEventListener('pagehide', () => {
+			if (floating && floating.win === win) {
+				floating = null;
+				const t = shown.get(key);
+				if (t && t.el && layer) {
+					layer.append(t.el);
+					t.playing = null;
+				}
+			}
+		});
+		floating = { win, key };
+		win.document.body.append(s.el);
+		// (its player starts again in the new window, from where everyone is)
+		s.playing = null;
+	}
 	/** The player's height for its width (a 16:9 screen in its frame). */
 	const popHeight = (/** @type {number} */ wd) => (wd - 8) * (9 / 16) + 10;
 	/** The place kept inside the layer (at least a corner of it always reachable), at least 200 px wide. */
@@ -492,6 +543,10 @@
 				fullKey = '';
 			}
 		});
+		// (over every tab and program: the browser's always-on-top window)
+		const win = small('sce-tv-win', () => {
+			floatTV(key).catch((e) => problem(FEATURE, e));
+		});
 		const grip = document.createElement('div');
 		grip.className = 'sce-tv-grip';
 		grip.title = 'Drag to size it';
@@ -526,6 +581,26 @@
 			w.addEventListener('pointerup', up, true);
 		};
 		el.addEventListener('pointerdown', (e) => drag(e, false));
+		// Closing it can't be missed: a red ✕ always showing in its corner, and a double click, put the TV back.
+		const putBack = () => {
+			if (floating && floating.key === key) {
+				floating.win.close();
+			} else if (popKey === key) {
+				popKey = '';
+			}
+		};
+		const close = small('sce-tv-close', putBack);
+		close.textContent = '✕';
+		close.title = 'Close: puts the TV back on the character';
+		close.style.cssText += 'left:4px;right:auto;z-index:2;background:#d33;opacity:1;font-weight:bold;box-shadow:0 0 0 2px #fff8;';
+		close.addEventListener('mouseleave', () => (close.style.opacity = '1'));
+		close.hidden = true;
+		el.addEventListener('dblclick', (e) => {
+			if (shown.get(key)?.pop && !/** @type {HTMLElement} */ (e.target).closest('button, input, .sce-tv-bar')) {
+				e.stopPropagation();
+				putBack();
+			}
+		});
 		grip.addEventListener('pointerdown', (e) => drag(e, true));
 		for (const type of ['mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'wheel']) {
 			// (clicks on the popped-out player never reach the game under it)
@@ -549,8 +624,8 @@
 			}
 		});
 		powerButton.textContent = '⏻';
-		ui.append(powerButton, off, mute, pop, full, bar, grip);
-		el.append(screen, led, ui);
+		ui.append(powerButton, off, mute, win, pop, full, bar, grip);
+		el.append(screen, led, ui, close);
 		return el;
 	}
 
@@ -693,7 +768,9 @@
 
 	const YT_ORIGIN = 'https://www.youtube-nocookie.com';
 	// What each YouTube player reports (where it is, how long the video is, playing or not).
-	w.addEventListener('message', (e) => {
+	w.addEventListener('message', onPlayerMessage);
+	/** A YouTube player's report (where it is, how long, playing or not), from this page or the floating window. */
+	function onPlayerMessage(/** @type {MessageEvent} */ e) {
 		if (e.origin !== YT_ORIGIN || typeof e.data !== 'string') {
 			return;
 		}
@@ -721,7 +798,7 @@
 				// (not one of the player's reports)
 			}
 		}
-	});
+	}
 
 	/**
 	 * Keeps a TV where everyone else is: where the video should be now (from when it started, on the server's clock,
@@ -881,22 +958,23 @@
 			return;
 		}
 		const r = s.el.getBoundingClientRect();
-		const over = mouse.x >= r.left && mouse.x <= r.right && mouse.y >= r.top && mouse.y <= r.bottom;
-		if (over && mouse.at > (s.uiAt || 0)) {
-			s.uiAt = mouse.at;
+		const m = s.float ? winMouse : mouse;
+		const over = m.x >= r.left && m.x <= r.right && m.y >= r.top && m.y <= r.bottom;
+		if (over && m.at > (s.uiAt || 0)) {
+			s.uiAt = m.at;
 		}
 		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && ui.matches(':hover'));
 		// (a small TV, as on the map, shows only ⛶: full screen has every control)
-		const tiny = !s.full && !s.pop && r.width < 170;
+		const tiny = !s.full && !s.pop && !s.float && r.width < 170;
 		for (const cls of ['.sce-tv-power', '.sce-tv-off', '.sce-tv-mute']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && tiny) {
 				b.hidden = true;
 			}
 		}
-		// (the buttons showing sit side by side from the right: ⛶, ⧉, 🔊, 🙈, ⏻)
+		// (the buttons showing sit side by side from the right: ⛶, ⧉, 📌, 🔊, 🙈, ⏻)
 		let right = s.full ? 10 : 4;
-		for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
+		for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && !b.hidden) {
 				b.style.right = `${right}px`;
@@ -929,7 +1007,7 @@
 		seek.hidden = !d || !may;
 		/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')).hidden = !may;
 		const vol = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-vol'));
-		if (document.activeElement !== vol) {
+		if (s.el.ownerDocument.activeElement !== vol) {
 			vol.value = String(tvVolume(s.key));
 		}
 		label(/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')), st.mode === 'pause' ? '▶' : '⏸', st.mode === 'pause' ? 'Play (for everyone)' : 'Pause (for everyone)');
@@ -960,8 +1038,18 @@
 		const pop = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-pop'));
 		label(pop, s.pop ? '↩' : '⧉', s.pop ? 'Put it back on the character' : 'Pop out: a small player you can move anywhere (for you)');
 		if (pop) {
-			pop.hidden = !s.on && !s.pop;
+			pop.hidden = (!s.on && !s.pop) || s.float;
 			pop.style.top = s.full ? '10px' : '4px';
+		}
+		const close = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-close'));
+		if (close) {
+			close.hidden = !s.pop && !s.float;
+		}
+		const win = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-win'));
+		label(win, s.float ? '↩' : '📌', s.float ? 'Put it back in the game' : 'Float it over every tab and program (for you)');
+		if (win) {
+			win.hidden = !canFloat() || (!s.on && !s.float);
+			win.style.top = s.full ? '10px' : '4px';
 		}
 		for (const b of [mute, full]) {
 			if (b) {
@@ -972,6 +1060,10 @@
 		// (⛶ also while it asks whether to watch: on a small TV, the question is answered full screen)
 		if (full && s.on) {
 			full.hidden = false;
+		}
+		// (its own window can be made big by the browser: no ⛶ there)
+		if (full && s.float) {
+			full.hidden = true;
 		}
 		const powerButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-power'));
 		if (powerButton) {
@@ -1008,7 +1100,19 @@
 	/** Every frame: puts each TV drawn lately where its character is, and stops those no longer drawn. */
 	function frame() {
 		requestAnimationFrame(frame);
+		tick();
+	}
+	// (a hidden tab gets no animation frames: the TVs keep in sync on a timer then, for the floating one)
+	setInterval(() => {
+		if (document.hidden) {
+			tick();
+		}
+	}, 300);
+	function tick() {
 		if (!working(FEATURE) || !tvsOn()) {
+			if (floating) {
+				floating.win.close();
+			}
 			for (const s of shown.values()) {
 				s.el?.remove();
 			}
@@ -1043,35 +1147,46 @@
 			}
 			// The popped-out TV stays while its character is in the room wearing it, on whatever screen (a profile, a
 			// menu, the wardrobe); then it goes.
-			const popTV = popKey ? shown.get(popKey) : null;
-			if (popTV) {
-				const inRoom = typeof w.ServerPlayerIsInChatRoom === 'function' ? w.ServerPlayerIsInChatRoom() : w.CurrentScreen === 'ChatRoom';
-				const C = inRoom ? ownerOf(popKey) : null;
+			const inRoom = typeof w.ServerPlayerIsInChatRoom === 'function' ? w.ServerPlayerIsInChatRoom() : w.CurrentScreen === 'ChatRoom';
+			/** Whether a TV taken out of the room view (popped out or floating) stays: its character there with it on. */
+			const stays = (/** @type {string} */ key) => {
+				const t = key ? shown.get(key) : null;
+				const C = t && inRoom ? ownerOf(key) : null;
 				const item = C && !blocked(C) ? tvOf(C) : null;
-				if (item && (item.Property || {}).Text) {
-					popTV.item = item;
-					popTV.seen = now;
-				} else {
-					popKey = '';
+				if (!t || !item || !(item.Property || {}).Text) {
+					return false;
 				}
-			} else {
+				t.item = item;
+				t.seen = now;
+				return true;
+			};
+			if (!stays(popKey)) {
 				popKey = '';
+			}
+			if (floating && !stays(floating.key)) {
+				floating.win.close();
+				floating = null;
 			}
 			if (at) {
 				// (over the game's own page elements while a TV fills the screen or floats over it)
 				at.layer.style.zIndex = fullKey || popKey ? '2147483000' : '';
 			}
 			for (const [key, s] of shown) {
-				s.full = key === fullKey;
-				s.pop = key === popKey && !s.full;
-				const fresh = s.full || s.pop || now - s.seen < 400;
+				s.float = !!floating && floating.key === key;
+				s.full = key === fullKey && !s.float;
+				s.pop = key === popKey && !s.full && !s.float;
+				const fresh = s.full || s.pop || s.float || now - s.seen < 400;
 				s.fresh = fresh;
 				const owner = fresh ? null : ownerOf(key);
 				const gone =
 					!fresh && (w.CurrentScreen !== 'ChatRoom' || !tvOf(owner) || !(tvOf(owner).Property || {}).Text || blocked(owner));
 				// (only the popped-out TV plays outside the chat room screen)
-				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop;
+				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop && !s.float;
 				if (!at || gone || now - s.seen > KEEP_MS) {
+					if (s.float) {
+						floating?.win.close();
+						floating = null;
+					}
 					s.el?.remove();
 					shown.delete(key);
 					continue;
@@ -1085,7 +1200,10 @@
 					fill(s);
 				}
 				s.el.style.visibility = fresh && !away ? 'visible' : 'hidden';
-				if (s.full) {
+				if (s.float) {
+					// Fills its own window.
+					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '', pointerEvents: 'auto', borderRadius: '0', cursor: '' });
+				} else if (s.full) {
 					// Fills the game's screen, on top of everything; clicks on it don't reach the game.
 					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '2', pointerEvents: 'auto', borderRadius: '0' });
 				} else if (s.pop) {
@@ -1359,5 +1477,5 @@
 	})) {
 		requestAnimationFrame(frame);
 	}
-	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey };
+	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key };
 })();
