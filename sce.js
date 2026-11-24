@@ -242,6 +242,11 @@
 		if (!hookPictures()) {
 			return;
 		}
+		try {
+			addExpressions();
+		} catch (e) {
+			problem('Expressions', e);
+		}
 		hookGame('AssetTextGet', 0, 'Clothes texts', (args, next) =>
 			typeof args[0] === 'string' && texts.has(args[0]) ? texts.get(args[0]) : next(args),
 		);
@@ -536,10 +541,53 @@
 		});
 	}
 
+	// ---- Facial expressions
+	/**
+	 * Expressions SCE adds to the game's own rows in the expression menu (picked like the game's, and kept on the
+	 * character like them). Their pictures are faces/<Group>/<Name>/<Group>.png, their menu buttons faces/<Group>/<Name>/
+	 * icon.png. Players without SCE see nothing there.
+	 */
+	const EXPRESSIONS = [{ group: 'Blush', name: 'Sick' }];
+	/** Adds the expressions to their groups (and those groups' items), once. */
+	function addExpressions() {
+		const getGroup = gameFunction('AssetGroupGet') && w.AssetGroupGet;
+		if (!getGroup) {
+			return;
+		}
+		for (const { group, name } of EXPRESSIONS) {
+			const g = getGroup('Female3DCG', group);
+			if (!g || !Array.isArray(g.AllowExpression)) {
+				continue;
+			}
+			// (the group and its items usually share one list; an item with a list of its own gets it too)
+			for (const holder of [g, ...(Array.isArray(g.Asset) ? g.Asset : [])]) {
+				const list = holder.AllowExpression;
+				if (!Array.isArray(list) || list.includes(name)) {
+					continue;
+				}
+				if (Object.isFrozen(list)) {
+					holder.AllowExpression = [...list, name];
+				} else {
+					list.push(name);
+				}
+			}
+		}
+	}
+
 	/** The add-on's address for one of the game's picture paths, or '' when it isn't one of ours. */
 	function picture(/** @type {string} */ url) {
 		if (/^(?:\.\/)?Icons\/Previews\/SCE\.png$/.test(url)) {
 			return ICON;
+		}
+		// (an expression's button in the expression menu: Icons/Expressions/<Group>/<Expression>.png)
+		const icon = /^(?:\.\/)?Icons\/Expressions\/([A-Za-z0-9]+)\/([A-Za-z0-9]+)\.png$/.exec(url);
+		if (icon && EXPRESSIONS.some((e) => e.group === icon[1] && e.name === icon[2])) {
+			return `${BASE}faces/${icon[1]}/${icon[2]}/icon.png${FRESH}`;
+		}
+		// (an expression's picture: Assets/Female3DCG/<Group>/<Expression>/<Group>.png)
+		const face = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/([A-Za-z0-9]+)\/([A-Za-z0-9]+)\.png$/.exec(url);
+		if (face && face[1] === face[3] && EXPRESSIONS.some((e) => e.group === face[1] && e.name === face[2])) {
+			return `${BASE}faces/${face[1]}/${face[2]}/${face[3]}.png${FRESH}`;
 		}
 		// Assets/Female3DCG/<Group>/[<Pose>/]<Asset>[_<option types>]_<Layer>.png, or <Group>/Preview/<Asset>.png
 		const m = /^(?:\.\/)?Assets\/Female3DCG\/([A-Za-z0-9]+)\/(?:([A-Za-z0-9]+)\/)?([A-Za-z0-9]+?)((?:_[A-Za-z0-9]+)*)\.png$/.exec(url);
