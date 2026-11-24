@@ -705,6 +705,9 @@
 				if (sayFromPanel(chatIn.value)) {
 					chatIn.value = '';
 				}
+				// (the game puts the focus in its own chat box after sending: back here, to keep talking)
+				chatIn.focus();
+				setTimeout(() => chatIn.focus(), 0);
 			}
 		});
 		for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'wheel', 'keyup', 'keypress', 'input']) {
