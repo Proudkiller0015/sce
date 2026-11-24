@@ -394,6 +394,93 @@
 		// (its player starts again in the new window, from where everyone is)
 		s.playing = null;
 	}
+	// ---- The room's chat beside a full-screen TV (like a stream's live chat): the real chat, mirrored, and a box that
+	// sends through the game's own chat (commands, /me and emotes as usual).
+	const CHAT_KEY = 'sce.tv.chat';
+	/** Whether the chat shows beside a full-screen TV (on unless you hid it; kept in this browser). */
+	function chatShown() {
+		try {
+			return localStorage.getItem(CHAT_KEY) !== '0';
+		} catch {
+			return true;
+		}
+	}
+	function setChatShown(/** @type {boolean} */ on) {
+		try {
+			localStorage.setItem(CHAT_KEY, on ? '1' : '0');
+		} catch {
+			// (blocked storage: for now only)
+		}
+	}
+	const CHAT_W_KEY = 'sce.tv.chatw';
+	/** The chat panel's width (page pixels) on a screen this wide: what you dragged it to, or about a quarter. */
+	function chatWidth(/** @type {number} */ wd) {
+		let v = NaN;
+		try {
+			v = Number(localStorage.getItem(CHAT_W_KEY) || NaN);
+		} catch {
+			// (the usual width)
+		}
+		const want = Number.isFinite(v) ? v : Math.min(360, Math.max(240, wd * 0.28));
+		return Math.round(Math.max(200, Math.min(want, wd * 0.6)));
+	}
+	/** The game's chat log, watched for new lines. */
+	let chatSource = /** @type {HTMLElement | null} */ (null);
+	let chatChanged = true;
+	const chatWatch = new MutationObserver(() => (chatChanged = true));
+	/** Copies the newest lines of the room's chat into a panel (only when they changed), keeping it scrolled down. */
+	function mirrorChat(/** @type {HTMLElement} */ log) {
+		const src = document.getElementById('TextAreaChatLog');
+		if (src !== chatSource) {
+			chatWatch.disconnect();
+			chatSource = src;
+			chatChanged = true;
+			if (src) {
+				chatWatch.observe(src, { childList: true, subtree: true, characterData: true });
+			}
+		}
+		if (!chatChanged && log.childElementCount) {
+			return;
+		}
+		chatChanged = false;
+		// (the colours of your own chat, light or dark theme, so its lines look as they do there)
+		if (src) {
+			const look = getComputedStyle(src);
+			log.style.background = look.backgroundColor;
+			log.style.color = look.color;
+		}
+		const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+		const lines = src ? [...src.children].filter((n) => n.classList.contains('ChatMessage')).slice(-80) : [];
+		log.replaceChildren(
+			...lines.map((n) => {
+				const c = /** @type {HTMLElement} */ (n.cloneNode(true));
+				// (the copies are only to read: no ids twice on the page)
+				c.removeAttribute('id');
+				for (const x of c.querySelectorAll('[id]')) {
+					x.removeAttribute('id');
+				}
+				return c;
+			}),
+		);
+		if (atEnd) {
+			log.scrollTop = log.scrollHeight;
+		}
+	}
+	/** Says something in the room from the panel, as if typed in the game's own chat box (which keeps what was in it). */
+	function sayFromPanel(/** @type {string} */ text) {
+		const box = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('InputChat'));
+		if (!text.trim() || !box || typeof w.ChatRoomSendChat !== 'function') {
+			return false;
+		}
+		const draft = box.value;
+		box.value = text;
+		try {
+			w.ChatRoomSendChat();
+		} finally {
+			box.value = draft;
+		}
+		return true;
+	}
 	/** The player's height for its width (a 16:9 screen in its frame). */
 	const popHeight = (/** @type {number} */ wd) => (wd - 8) * (9 / 16) + 10;
 	/** The place kept inside the layer (at least a corner of it always reachable), at least 200 px wide. */
@@ -589,6 +676,73 @@
 				popKey = '';
 			}
 		};
+		const chat = document.createElement('div');
+		chat.className = 'sce-tv-chat';
+		chat.style.cssText =
+			'position:absolute;top:0;right:0;bottom:0;box-sizing:border-box;display:flex;flex-direction:column;background:#101016;color:#eee;' +
+			'border-left:1px solid #333;pointer-events:auto;z-index:2;font:15px sans-serif;';
+		chat.hidden = true;
+		const chatHead = document.createElement('div');
+		chatHead.textContent = 'Room chat';
+		chatHead.style.cssText = 'flex:none;padding:10px 12px;font-weight:bold;border-bottom:1px solid #333;';
+		const chatLog = document.createElement('div');
+		chatLog.className = 'sce-tv-chatlog';
+		chatLog.style.cssText = 'flex:1;min-height:0;overflow-y:auto;padding:6px 8px;color:#eee;background:#101016;';
+		const chatIn = document.createElement('input');
+		chatIn.className = 'sce-tv-chatin';
+		chatIn.type = 'text';
+		chatIn.maxLength = 1000;
+		chatIn.placeholder = 'Talk in the room...';
+		chatIn.style.cssText = 'flex:none;margin:8px;padding:8px 10px;border:1px solid #444;border-radius:16px;background:#1d1d26;color:#fff;font:14px sans-serif;outline:none;';
+		chatIn.addEventListener('keydown', (e) => {
+			// (Esc still closes full screen; every other key is the box's, not the game's)
+			if (e.key === 'Escape') {
+				return;
+			}
+			e.stopPropagation();
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				if (sayFromPanel(chatIn.value)) {
+					chatIn.value = '';
+				}
+			}
+		});
+		for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'touchstart', 'touchend', 'wheel', 'keyup', 'keypress', 'input']) {
+			chat.addEventListener(type, (e) => e.stopPropagation());
+		}
+		// (its left edge, dragged, makes it wider or narrower; kept in this browser)
+		const chatEdge = document.createElement('div');
+		chatEdge.className = 'sce-tv-chatedge';
+		chatEdge.title = 'Drag to make the chat wider or narrower';
+		chatEdge.style.cssText = 'position:absolute;left:-4px;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:1;';
+		chatEdge.addEventListener('pointerdown', (e) => {
+			if (e.button !== 0 || !layer) {
+				return;
+			}
+			e.preventDefault();
+			e.stopPropagation();
+			const box = layer;
+			const x0 = e.clientX;
+			const w0 = chat.getBoundingClientRect().width;
+			const move = (/** @type {PointerEvent} */ m) => {
+				const v = Math.max(200, Math.min(w0 - (m.clientX - x0), box.clientWidth * 0.6));
+				try {
+					localStorage.setItem(CHAT_W_KEY, String(Math.round(v)));
+				} catch {
+					// (blocked storage: it springs back)
+				}
+			};
+			const up = () => {
+				w.removeEventListener('pointermove', move, true);
+				w.removeEventListener('pointerup', up, true);
+			};
+			w.addEventListener('pointermove', move, true);
+			w.addEventListener('pointerup', up, true);
+		});
+		chat.append(chatEdge, chatHead, chatLog, chatIn);
+		// (shows or hides the chat beside a full-screen TV)
+		const chatButton = small('sce-tv-chatbtn', () => setChatShown(!chatShown()));
+		chatButton.textContent = '💬';
 		const close = small('sce-tv-close', putBack);
 		close.textContent = '✕';
 		close.title = 'Close: puts the TV back on the character';
@@ -624,8 +778,8 @@
 			}
 		});
 		powerButton.textContent = '⏻';
-		ui.append(powerButton, off, mute, win, pop, full, bar, grip);
-		el.append(screen, led, ui, close);
+		ui.append(powerButton, off, mute, win, pop, chatButton, full, bar, grip);
+		el.append(screen, led, chat, ui, close);
 		return el;
 	}
 
@@ -973,8 +1127,9 @@
 			}
 		}
 		// (the buttons showing sit side by side from the right: ⛶, ⧉, 📌, 🔊, 🙈, ⏻)
-		let right = s.full ? 10 : 4;
-		for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
+		const side = s.full && s.chatW ? s.chatW : 0;
+		let right = s.full ? 10 + side : 4;
+		for (const cls of ['.sce-tv-full', '.sce-tv-chatbtn', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && !b.hidden) {
 				b.style.right = `${right}px`;
@@ -999,7 +1154,7 @@
 		bar.hidden = tiny || !s.media || st.mode === 'off';
 		bar.style.bottom = s.full ? '14px' : '6px';
 		// (room for the popped-out player's corner grip)
-		bar.style.right = s.full ? '14px' : s.pop ? '20px' : '6px';
+		bar.style.right = s.full ? `${14 + (s.chatW || 0)}px` : s.pop ? '20px' : '6px';
 		bar.style.left = s.full ? '14px' : '6px';
 		bar.style.fontSize = s.full ? '13px' : '11px';
 		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
@@ -1040,6 +1195,13 @@
 		if (pop) {
 			pop.hidden = (!s.on && !s.pop) || s.float;
 			pop.style.top = s.full ? '10px' : '4px';
+		}
+		const chatButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-chatbtn'));
+		label(chatButton, '💬', chatShown() ? 'Hide the room chat' : 'Show the room chat beside the video');
+		if (chatButton) {
+			chatButton.hidden = !s.full;
+			chatButton.style.top = '10px';
+			chatButton.style.opacity = chatShown() ? '1' : '.6';
 		}
 		const close = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-close'));
 		if (close) {
@@ -1204,8 +1366,10 @@
 					// Fills its own window.
 					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '', pointerEvents: 'auto', borderRadius: '0', cursor: '' });
 				} else if (s.full) {
-					// Fills the game's screen, on top of everything; clicks on it don't reach the game.
-					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '2', pointerEvents: 'auto', borderRadius: '0' });
+					// Fills the game's screen, on top of everything; clicks on it don't reach the game. The room's chat
+					// sits beside the video (💬 hides it).
+					s.chatW = chatShown() && w.CurrentScreen === 'ChatRoom' ? chatWidth(at.layer.clientWidth) : 0;
+					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: `0 ${s.chatW}px 0 0`, zIndex: '2', pointerEvents: 'auto', borderRadius: '0' });
 				} else if (s.pop) {
 					// Its own little player, where you put it, over everything; dragged to move, its corner to size.
 					const v = clampPop(popPlace(), at.layer);
@@ -1234,6 +1398,21 @@
 						borderRadius: '6px',
 						cursor: '',
 					});
+				}
+				const chat = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-chat'));
+				if (chat) {
+					const on = !!s.full && !!s.chatW;
+					if (!on && chat.contains(s.el.ownerDocument.activeElement)) {
+						/** @type {HTMLElement} */ (s.el.ownerDocument.activeElement).blur();
+					}
+					chat.hidden = !on;
+					if (on) {
+						chat.style.width = `${s.chatW}px`;
+						mirrorChat(/** @type {HTMLElement} */ (chat.querySelector('.sce-tv-chatlog')));
+					}
+				}
+				if (!s.full) {
+					s.chatW = 0;
 				}
 				sound(s);
 				controls(s);
