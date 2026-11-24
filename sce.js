@@ -1619,13 +1619,30 @@
 			['Show what is new after an update', 'updateNotes'],
 			['Add the extra clothing slots (from the next reload)', 'extraSlots'],
 			["With other add-ons' items in them too (from the next reload)", 'slotAddOnItems', 'extraSlots'],
-			["Show TVs (off: no TV shows or plays for you)", 'tvs'],
-			["Ask before other people's TVs play (off: see every TV)", 'tvsAsk', 'tvs'],
 		];
 		/** A box's left edge: one under another is set in. */
 		const boxLeft = (/** @type {any} */ under) => (under ? LEFT + 80 : LEFT);
+		/** @type {[number, number, number, number]} Every TV (player) option on a page of its own. */
+		const PLAYERS = [LEFT, TOP + boxes.length * ROW + 10, 520, 64];
 		/** @type {[number, number, number, number]} The restore button, under the boxes and the status line. */
-		const RESTORE = [LEFT, TOP + boxes.length * ROW + 80, 640, 64];
+		const RESTORE = [LEFT, TOP + (boxes.length + 1) * ROW + 80, 640, 64];
+		/** The Players page: its boxes (label, setting, the setting it sits under), the volume row and the resets. */
+		const PLAYER_BOXES = /** @type {[string, keyof typeof settings, (keyof typeof settings)?][]} */ ([
+			['Show TVs (off: no TV shows or plays for you)', 'tvs'],
+			["Ask before other people's TVs play (off: see every TV)", 'tvsAsk', 'tvs'],
+		]);
+		const CHAT_BOX = TOP + 2 * ROW;
+		const VOLUME_ROW = TOP + 3 * ROW + 10;
+		/** @type {[string, string, string][]} The resets: label, what the count counts, what it does. */
+		const RESETS = [
+			['Forget my Always / Never choices', 'choices', 'forgetChoices'],
+			["Put every person's TV back to the base volume", 'volumes', 'resetVolumes'],
+			['Unmute the TVs I muted', 'muted', 'unmuteAll'],
+			['Put the floating player and the chat width back', 'placed', 'resetPlaces'],
+		];
+		const resetBox = (/** @type {number} */ i) => /** @type {[number, number, number, number]} */ ([LEFT, TOP + 5 * ROW + i * (ROW + 6), 760, 60]);
+		/** What the last reset did. */
+		let playersSaid = '';
 		/** @type {[number, number, number, number]} */
 		const CLOTHES_LIST = [LEFT, RESTORE[1] + 90, 300, 64];
 		/** @type {[number, number, number, number]} */
@@ -1646,10 +1663,60 @@
 		const GUIDE = [LEFT, 680, 480, 64];
 		/** What the last press of the restore button did. */
 		let restoreSaid = '';
-		/** @type {'main' | 'clothes' | 'activities' | 'contribute' | 'credits' | 'devs'} The page shown: the settings, a
-		 * list or a small page. */
+		/** @type {'main' | 'players' | 'clothes' | 'activities' | 'contribute' | 'credits' | 'devs'} The page shown: the
+		 * settings, the players' options, a list or a small page. */
 		let page = 'main';
 		const mouseIn = (/** @type {number[]} */ r) => typeof w.MouseIn === 'function' && w.MouseIn(r[0], r[1], r[2], r[3]);
+		/** The TV's own choices (tv.js), once it has loaded. */
+		const tvPrefs = () => (w.SCETV && w.SCETV.prefs) || null;
+		/** The Players page: every TV option in one place (the boombox's join it when it comes). */
+		function drawPlayers() {
+			const ctx = MainCanvas;
+			w.DrawText('- Players: TVs -', LEFT, 125, 'Black', 'Gray');
+			PLAYER_BOXES.forEach(([label, key, under], i) =>
+				w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
+			);
+			const prefs = tvPrefs();
+			w.DrawCheckbox(LEFT, CHAT_BOX, 64, 64, "Show the room's chat beside a full-screen or floating TV", prefs ? prefs.chat() : true, !prefs);
+			w.DrawTextFit("Base TV volume (until you move a TV's own slider)", LEFT, VOLUME_ROW + 32, TV_LESS[0] - LEFT - 30, 'Black', 'Gray');
+			ctx.textAlign = 'center';
+			w.DrawButton(TV_LESS[0], VOLUME_ROW, TV_LESS[2], TV_LESS[3], '−', settings.tvVolume > TV_VOLUME.min ? 'White' : '#bbb');
+			w.DrawText(`${settings.tvVolume}%`, (TV_LESS[0] + TV_MORE[0] + TV_MORE[2]) / 2, VOLUME_ROW + 32, 'Black', 'Gray');
+			w.DrawButton(TV_MORE[0], VOLUME_ROW, TV_MORE[2], TV_MORE[3], '+', settings.tvVolume < TV_VOLUME.max ? 'White' : '#bbb');
+			const counts = prefs ? prefs.counts() : null;
+			RESETS.forEach(([label, what], i) => {
+				const n = counts ? counts[what] : 0;
+				const text = typeof n === 'number' ? `${label} (${n})` : label;
+				w.DrawButton(...resetBox(i), text, n ? 'White' : '#ddd');
+			});
+			ctx.textAlign = 'left';
+			w.DrawText(playersSaid || 'All of these are kept in this browser, only for you.', LEFT, resetBox(RESETS.length)[1] + 30, 'Black', 'Gray');
+		}
+		function clickPlayers() {
+			PLAYER_BOXES.forEach(([, key, under], i) => {
+				if (!(under && !settings[under]) && mouseIn([boxLeft(under), TOP + i * ROW, 64, 64])) {
+					settings[key] = !settings[key];
+					saveSettings();
+				}
+			});
+			const prefs = tvPrefs();
+			if (prefs && mouseIn([LEFT, CHAT_BOX, 64, 64])) {
+				prefs.setChat(!prefs.chat());
+			}
+			for (const [box, step] of /** @type {[number[], number][]} */ ([[TV_LESS, -TV_VOLUME.step], [TV_MORE, TV_VOLUME.step]])) {
+				if (mouseIn([box[0], VOLUME_ROW, box[2], box[3]])) {
+					settings.tvVolume = Math.max(TV_VOLUME.min, Math.min(TV_VOLUME.max, settings.tvVolume + step));
+					saveSettings();
+				}
+			}
+			RESETS.forEach(([label, what, act], i) => {
+				const counts = prefs ? prefs.counts() : null;
+				if (prefs && counts && counts[what] && mouseIn(resetBox(i))) {
+					prefs[act]();
+					playersSaid = `${label}: done.`;
+				}
+			});
+		}
 		try {
 			register({
 				Identifier: ADDON_ID,
@@ -1686,6 +1753,12 @@
 							w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
 							return;
 						}
+						if (page === 'players') {
+							drawPlayers();
+							ctx.textAlign = 'center';
+							w.DrawButton(...EXIT, '', 'White', 'Icons/Exit.png');
+							return;
+						}
 						if (page !== 'main') {
 							drawList(page);
 							ctx.textAlign = 'center';
@@ -1697,12 +1770,8 @@
 						boxes.forEach(([label, key, under], i) =>
 							w.DrawCheckbox(boxLeft(under), TOP + i * ROW, 64, 64, label, settings[key], !!under && !settings[under]),
 						);
-						// (the base TV volume, on the TV line: every TV starts at it until its own slider is moved)
-						const tvRow = TOP + boxes.findIndex(([, key]) => key === 'tvs') * ROW;
 						ctx.textAlign = 'center';
-						w.DrawButton(TV_LESS[0], tvRow, TV_LESS[2], TV_LESS[3], '−', settings.tvVolume > TV_VOLUME.min ? 'White' : '#bbb');
-						w.DrawText(`TV volume ${settings.tvVolume}%`, (TV_LESS[0] + TV_MORE[0] + TV_MORE[2]) / 2, tvRow + 32, 'Black', 'Gray');
-						w.DrawButton(TV_MORE[0], tvRow, TV_MORE[2], TV_MORE[3], '+', settings.tvVolume < TV_VOLUME.max ? 'White' : '#bbb');
+						w.DrawButton(...PLAYERS, `📺 Players: TV options${settings.tvs ? '' : ' (TVs off)'}`, 'White');
 						ctx.textAlign = 'left';
 						const off = [...problems.keys()];
 						// (fitted, and the first few named: items left out of the slots each have their own entry)
@@ -1710,7 +1779,7 @@
 						w.DrawTextFit(
 							off.length ? `Switched off this session: ${named}` : 'Everything is working.',
 							LEFT,
-							TOP + boxes.length * ROW + 40,
+							TOP + (boxes.length + 1) * ROW + 40,
 							1400,
 							off.length ? 'Red' : 'Black',
 							'Gray',
@@ -1747,6 +1816,10 @@
 							openPage(page === 'contribute' ? `${REPO_URL}/blob/main/CONTRIBUTING.md` : REPO_URL);
 							return;
 						}
+						if (page === 'players') {
+							clickPlayers();
+							return;
+						}
 						if (page !== 'main') {
 							return;
 						}
@@ -1774,13 +1847,10 @@
 							page = 'activities';
 							return;
 						}
-						const tvRow = TOP + boxes.findIndex(([, key]) => key === 'tvs') * ROW;
-						for (const [box, step] of /** @type {[number[], number][]} */ ([[TV_LESS, -TV_VOLUME.step], [TV_MORE, TV_VOLUME.step]])) {
-							if (mouseIn([box[0], tvRow, box[2], box[3]])) {
-								settings.tvVolume = Math.max(TV_VOLUME.min, Math.min(TV_VOLUME.max, settings.tvVolume + step));
-								saveSettings();
-								return;
-							}
+						if (mouseIn(PLAYERS)) {
+							page = 'players';
+							playersSaid = '';
+							return;
 						}
 						if (mouseIn(RESTORE)) {
 							const back = putBack();

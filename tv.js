@@ -1806,5 +1806,46 @@
 	})) {
 		requestAnimationFrame(frame);
 	}
-	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key };
+	/** What SCE's Players page (its settings) shows and resets: the TV choices kept in this browser. */
+	const forget = (/** @type {string[]} */ keys) => {
+		for (const k of keys) {
+			try {
+				localStorage.removeItem(k);
+			} catch {
+				// (blocked storage: nothing kept to forget)
+			}
+		}
+	};
+	const stored = (/** @type {string} */ k) => {
+		try {
+			return localStorage.getItem(k) !== null;
+		} catch {
+			return false;
+		}
+	};
+	const prefs = {
+		chat: () => chatShown(),
+		setChat: (/** @type {boolean} */ on) => setChatShown(on),
+		counts: () => ({
+			choices: Object.keys(always()).length,
+			volumes: Object.keys(volumes()).length,
+			muted: mutedTVs().size,
+			placed: stored(POP_KEY) || stored(CHAT_W_KEY),
+		}),
+		forgetChoices: () => forget([ALWAYS_KEY]),
+		resetVolumes: () => {
+			forget([VOLUME_KEY]);
+			for (const s of shown.values()) {
+				s.volume = undefined;
+			}
+		},
+		unmuteAll: () => {
+			forget([MUTED_TVS_KEY]);
+			for (const s of shown.values()) {
+				s.volume = undefined;
+			}
+		},
+		resetPlaces: () => forget([POP_KEY, CHAT_W_KEY]),
+	};
+	w.SCETV = { parseLink, placeOf, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key, prefs };
 })();
