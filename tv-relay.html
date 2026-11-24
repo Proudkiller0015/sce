@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>SCE TV</title>
+<style>
+	html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+	iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<!--
+	SCE's TV floating over every tab plays YouTube from here. The browser's floating window is a page with no address,
+	and YouTube refuses to play for one ("Error 153"); this page has one. It shows the YouTube player and passes the
+	TV's commands to it, and the player's reports back, nothing else.
+-->
+<iframe id="player" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<script>
+	(() => {
+		'use strict';
+		const YT = 'https://www.youtube-nocookie.com';
+		const q = new URLSearchParams(location.search);
+		const id = q.get('v') || '';
+		if (!/^[\w-]{11}$/.test(id)) {
+			return;
+		}
+		const frame = document.getElementById('player');
+		const p = new URLSearchParams({
+			autoplay: q.get('autoplay') === '1' ? '1' : '0',
+			start: String(Math.max(0, parseInt(q.get('start') || '0', 10) || 0)),
+			controls: '0',
+			rel: '0',
+			playsinline: '1',
+			enablejsapi: '1',
+			loop: '1',
+			playlist: id,
+			origin: location.origin,
+		});
+		frame.src = `${YT}/embed/${id}?${p}`;
+		// (nothing goes to the player before it has loaded: until then the browser refuses messages for YouTube)
+		let ready = false;
+		const waiting = [];
+		frame.addEventListener('load', () => {
+			ready = true;
+			for (const m of waiting.splice(0)) {
+				frame.contentWindow.postMessage(m, YT);
+			}
+		});
+		addEventListener('message', (e) => {
+			if (typeof e.data !== 'string' || e.data.length > 4000) {
+				return;
+			}
+			if (e.source !== frame.contentWindow) {
+				// (the TV's commands: they come from the game's tab, which runs SCE, or from the window this page is in.
+				// Only the player's own kinds of message are passed on.)
+				let kind = '';
+				try {
+					kind = JSON.parse(e.data).event;
+				} catch {
+					return;
+				}
+				if (kind !== 'listening' && kind !== 'command') {
+					return;
+				}
+				if (ready) {
+					frame.contentWindow.postMessage(e.data, YT);
+				} else if (waiting.length < 20) {
+					waiting.push(e.data);
+				}
+			} else if (e.origin === YT) {
+				parent.postMessage(e.data, '*');
+			}
+		});
+	})();
+</script>
+</body>
+</html>

@@ -18,6 +18,12 @@
 	}
 	w.SCETVLoaded = true;
 	const { hookGame, problem, working, itemMenus, settings, saveSettings, toast } = kit;
+	/**
+	 * The page a floating TV plays YouTube through (tv-relay.html, next to SCE): the floating window has no address,
+	 * and YouTube refuses to play for a page without one ("Error 153"). It passes the commands and reports on.
+	 */
+	const YT_RELAY = kit.base ? new URL('tv-relay.html', kit.base).href : '';
+	const RELAY_ORIGIN = YT_RELAY ? new URL(YT_RELAY).origin : '';
 	const FEATURE = 'TV';
 	const GROUP = 'ItemMisc';
 	const NAME = 'SlimeTV';
@@ -390,6 +396,10 @@
 			}
 		});
 		floating = { win, key };
+		// (it leaves full screen: closing the window brings the TV back to the room, not to full screen)
+		if (fullKey === key) {
+			fullKey = '';
+		}
 		win.document.body.append(s.el);
 		// (its player starts again in the new window, from where everyone is)
 		s.playing = null;
@@ -977,7 +987,12 @@
 				playlist: what.yt,
 				origin: location.origin,
 			});
-			f.src = `${YT_ORIGIN}/embed/${what.yt}?${q}`;
+			// (floating over every tab: through the relay page, which has an address for YouTube)
+			const relay = !!s.float && !!YT_RELAY;
+			f.src = relay
+				? `${YT_RELAY}?${new URLSearchParams({ v: what.yt, start: String(Math.floor(from)), autoplay: paused ? '0' : '1' })}`
+				: `${YT_ORIGIN}/embed/${what.yt}?${q}`;
+			const target = relay ? RELAY_ORIGIN : YT_ORIGIN;
 			f.allow = 'autoplay; encrypted-media';
 			f.referrerPolicy = 'strict-origin-when-cross-origin';
 			f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none;';
@@ -992,11 +1007,11 @@
 				for (const t of [0, 1000, 3000]) {
 					setTimeout(() => {
 						s.volume = undefined;
-						f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), YT_ORIGIN);
+						f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), target);
 					}, t);
 				}
 			});
-			s.media = { yt: f, time: -1, duration: 0, state: -1, at: 0, synced: 0 };
+			s.media = { yt: f, target, time: -1, duration: 0, state: -1, at: 0, synced: 0 };
 			screen.append(f);
 			return;
 		}
@@ -1036,7 +1051,7 @@
 	w.addEventListener('message', onPlayerMessage);
 	/** A YouTube player's report (where it is, how long, playing or not), from this page or the floating window. */
 	function onPlayerMessage(/** @type {MessageEvent} */ e) {
-		if (e.origin !== YT_ORIGIN || typeof e.data !== 'string') {
+		if ((e.origin !== YT_ORIGIN && (!RELAY_ORIGIN || e.origin !== RELAY_ORIGIN)) || typeof e.data !== 'string') {
 			return;
 		}
 		for (const s of shown.values()) {
@@ -1099,7 +1114,7 @@
 		}
 		if (m.yt && m.ready && m.duration > 0 && m.time >= 0) {
 			const send = (/** @type {string} */ func, /** @type {any[]} */ args = []) =>
-				m.yt.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN);
+				m.yt.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), m.target || YT_ORIGIN);
 			// (states: 1 playing, 2 paused, 3 loading, 5 not started)
 			if (m.state === 3) {
 				return;
@@ -1370,7 +1385,7 @@
 			s.media.video.muted = v === 0;
 		} else if (s.media.yt && s.media.ready && s.media.yt.contentWindow) {
 			const send = (/** @type {string} */ func, /** @type {any[]} */ args = []) =>
-				s.media.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN);
+				s.media.yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), s.media.target || YT_ORIGIN);
 			send('setVolume', [Math.round(v * 100)]);
 			send(v === 0 ? 'mute' : 'unMute');
 		}

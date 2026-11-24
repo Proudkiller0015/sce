@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.8';
+	const VERSION = '1.8.9';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -2304,7 +2304,7 @@
 		outfits: () => outfitChoices,
 		slots: slotGroups,
 		putBack: () => (working('Restore') ? putBack() : []),
-		kit: { hookGame, problem, working, gameFunction, settings, saveSettings, toast, itemMenus, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
+		kit: { hookGame, problem, working, gameFunction, settings, saveSettings, toast, itemMenus, ICON, ADDON_NAME, base: BASE, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
 	};
 	start();
 	startExtras();

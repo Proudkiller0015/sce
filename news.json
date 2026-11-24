@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.9",
+		"title": "Slime Clothing Extension v1.8.9",
+		"text": "🐛 Fixed: YouTube TVs floating over every tab (📌) showed YouTube's \"Error 153\" instead of playing. Pinning from full screen now closes full screen, so closing the floating window brings the TV back to the room."
+	},
+	{
 		"id": "1.8.8",
 		"title": "Slime Clothing Extension v1.8.8",
 		"text": "📺 Like a video player: click a TV's picture to pause or play it (for everyone, if you may change that TV), double click for full screen and again to leave it. Works while its controls show, so other clicks still reach the room."
