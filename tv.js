@@ -371,7 +371,7 @@
 		if (!s || !s.el || !canFloat()) {
 			return;
 		}
-		const win = await w.documentPictureInPicture.requestWindow({ width: 480, height: 280 });
+		const win = await w.documentPictureInPicture.requestWindow({ width: 720, height: 330 });
 		win.document.title = 'TV';
 		win.document.body.style.cssText = 'margin:0;background:#000;overflow:hidden;';
 		win.addEventListener('message', onPlayerMessage);
@@ -1253,8 +1253,8 @@
 			}
 		}
 		// (the buttons showing sit side by side from the right: ⛶, ⧉, 📌, 🔊, 🙈, ⏻)
-		const side = s.full && s.chatW ? s.chatW : 0;
-		let right = s.full ? 10 + side : 4;
+		const side = (s.full || s.float) && s.chatW ? s.chatW : 0;
+		let right = s.full ? 10 + side : 4 + side;
 		for (const cls of ['.sce-tv-full', '.sce-tv-chatbtn', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-mute', '.sce-tv-off', '.sce-tv-power']) {
 			const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
 			if (b && !b.hidden) {
@@ -1286,7 +1286,7 @@
 		bar.hidden = tiny || !s.media || st.mode === 'off';
 		bar.style.bottom = s.full ? '14px' : '6px';
 		// (room for the popped-out player's corner grip)
-		bar.style.right = s.full ? `${14 + (s.chatW || 0)}px` : s.pop ? '20px' : '6px';
+		bar.style.right = s.full ? `${14 + (s.chatW || 0)}px` : s.float ? `${6 + (s.chatW || 0)}px` : s.pop ? '20px' : '6px';
 		bar.style.left = s.full ? '14px' : '6px';
 		bar.style.fontSize = s.full ? '13px' : '11px';
 		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
@@ -1331,7 +1331,7 @@
 		const chatButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-chatbtn'));
 		label(chatButton, '💬', chatShown() ? 'Hide the room chat' : 'Show the room chat beside the video');
 		if (chatButton) {
-			chatButton.hidden = !s.full;
+			chatButton.hidden = !s.full && !s.float;
 			chatButton.style.top = '10px';
 			chatButton.style.opacity = chatShown() ? '1' : '.6';
 		}
@@ -1396,6 +1396,15 @@
 		requestAnimationFrame(frame);
 		tick();
 	}
+	// (back in the tab, every TV counts as just seen: the game hadn't drawn them while it was hidden)
+	document.addEventListener('visibilitychange', () => {
+		if (!document.hidden) {
+			const now = performance.now();
+			for (const s of shown.values()) {
+				s.seen = now;
+			}
+		}
+	});
 	// (a hidden tab gets no animation frames: the TVs keep in sync on a timer then, for the floating one)
 	setInterval(() => {
 		if (document.hidden) {
@@ -1466,6 +1475,11 @@
 				at.layer.style.zIndex = fullKey || popKey ? '2147483000' : '';
 			}
 			for (const [key, s] of shown) {
+				// (a hidden tab: the game draws nothing, so no TV is "out of sight": each plays on as it was, untouched.
+				// Only the floating one, still on screen, keeps in sync.)
+				if (document.hidden && !(floating && floating.key === key)) {
+					continue;
+				}
 				s.float = !!floating && floating.key === key;
 				s.full = key === fullKey && !s.float;
 				s.pop = key === popKey && !s.full && !s.float;
@@ -1495,8 +1509,11 @@
 				}
 				s.el.style.visibility = fresh && !away ? 'visible' : 'hidden';
 				if (s.float) {
-					// Fills its own window.
-					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: '0', zIndex: '', pointerEvents: 'auto', borderRadius: '0', cursor: '' });
+					// Fills its own window, with the room's chat beside it when the window is wide enough (💬 hides it).
+					const wide = floating ? floating.win.innerWidth : 0;
+					// (browsers cap the window's size by the screen: from 480 wide, the chat takes up to 40% of it)
+					s.chatW = chatShown() && wide >= 480 ? Math.min(chatWidth(wide), Math.max(200, Math.round(wide * 0.4))) : 0;
+					Object.assign(s.el.style, { left: '0', top: '0', width: '100%', height: '100%', padding: `0 ${s.chatW}px 0 0`, zIndex: '', pointerEvents: 'auto', borderRadius: '0', cursor: '' });
 				} else if (s.full) {
 					// Fills the game's screen, on top of everything; clicks on it don't reach the game. The room's chat
 					// sits beside the video (💬 hides it).
@@ -1533,7 +1550,7 @@
 				}
 				const chat = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-chat'));
 				if (chat) {
-					const on = !!s.full && !!s.chatW;
+					const on = (!!s.full || !!s.float) && !!s.chatW;
 					if (!on && chat.contains(s.el.ownerDocument.activeElement)) {
 						/** @type {HTMLElement} */ (s.el.ownerDocument.activeElement).blur();
 					}
@@ -1543,7 +1560,7 @@
 						mirrorChat(/** @type {HTMLElement} */ (chat.querySelector('.sce-tv-chatlog')));
 					}
 				}
-				if (!s.full) {
+				if (!s.full && !s.float) {
 					s.chatW = 0;
 				}
 				paint(s, now);
