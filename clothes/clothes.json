@@ -3165,6 +3165,37 @@
 			"poses": [
 				"AllFours"
 			]
+		},
+		{
+			"name": "SlimeTV",
+			"group": "ItemMisc",
+			"description": "HD TV",
+			"def": {
+				"Name": "SlimeTV",
+				"Value": 0,
+				"Random": false,
+				"Visible": false,
+				"Time": 5,
+				"RemoveTime": 5,
+				"Difficulty": -10,
+				"AllowLock": false
+			},
+			"extended": {
+				"Archetype": "noarch",
+				"BaselineProperty": {
+					"Text": "",
+					"Text2": "",
+					"Text3": ""
+				}
+			},
+			"texts": {
+				"ItemMiscSlimeTVSelect": "Choose what the TV plays"
+			},
+			"layerNames": {},
+			"groupNames": {},
+			"colorHistory": {},
+			"fits": [],
+			"poses": []
 		}
 	],
 	"images": [

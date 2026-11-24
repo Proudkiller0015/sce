@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.7.0';
+	const VERSION = '1.8.0';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -128,6 +128,8 @@
 	const pieceNamed = (/** @type {string} */ name) => [...pieces.values()].find((p) => p.name === name);
 	/** @type {Set<string>} Picture files the pieces have. */
 	const images = new Set();
+	/** @type {Map<string, Record<string, Function>>} Menus of items with screens of their own, by item name (tv.js). */
+	const itemMenus = new Map();
 	/** @type {Map<string, string>} The pieces' texts, by the game's text key. */
 	const texts = new Map();
 	/** @type {Map<string, string>} The pieces' layer names in the colour screen, by <Group><Asset><Layer>. */
@@ -274,7 +276,7 @@
 			w.AssetAdd(
 				group,
 				standingOnly(piece.def, group, piece.fits || [], piece.poses || []),
-				piece.extended ? { [piece.group]: { [piece.name]: withoutGameMessages(piece.extended) } } : undefined,
+				piece.extended ? { [piece.group]: { [piece.name]: withoutGameMessages(piece.extended, piece.name) } } : undefined,
 				groupDef,
 			);
 		} catch (e) {
@@ -338,8 +340,27 @@
 	 * The extended item config, sending no message of the game's own when an option changes: the game has no text for
 	 * ours. (Clothes never send one; items in the other groups do.)
 	 */
-	function withoutGameMessages(/** @type {any} */ extended) {
-		return { ...extended, ScriptHooks: { ...(extended.ScriptHooks || {}), PublishAction: () => {} } };
+	function withoutGameMessages(/** @type {any} */ extended, name = '') {
+		/** @type {Record<string, any>} */
+		const hooks = { ...(extended.ScriptHooks || {}), PublishAction: () => {} };
+		if (extended.Archetype === 'noarch' && name) {
+			// An item with a menu of its own (the TV): the menu's parts come from itemMenus when they are called, so the
+			// file that makes them (tv.js) may load after the item. A part that fails switches the menu back to the game's.
+			for (const part of ['Load', 'Draw', 'Click', 'Exit']) {
+				hooks[part] = (/** @type {any} */ data, /** @type {any} */ next, /** @type {any[]} */ ...args) => {
+					const own = working(`Menu: ${name}`) && itemMenus.get(name)?.[part];
+					if (own) {
+						try {
+							return own(data, next, ...args);
+						} catch (e) {
+							problem(`Menu: ${name}`, e);
+						}
+					}
+					return typeof next === 'function' ? next(...args) : undefined;
+				};
+			}
+		}
+		return { ...extended, ScriptHooks: hooks };
 	}
 	/** Takes a half-added piece back out of the game's lists. */
 	function unregister(/** @type {any} */ group, /** @type {string} */ name) {
@@ -2154,16 +2175,19 @@
 		}, 1000);
 	}
 
-	/** The activities live in activities.js, next to this script; it uses the hooks above (window.SCE.kit). */
-	function loadActivities() {
+	/**
+	 * The activities live in activities.js and the TV in tv.js, next to this script; they use the hooks above
+	 * (window.SCE.kit).
+	 */
+	function loadScript(/** @type {string} */ file, /** @type {string} */ feature) {
 		try {
 			const script = document.createElement('script');
-			script.src = `${BASE}activities.js${FRESH}`;
+			script.src = `${BASE}${file}${FRESH}`;
 			script.crossOrigin = 'anonymous';
-			script.onerror = () => problem('Activities', 'activities.js did not load');
+			script.onerror = () => problem(feature, `${file} did not load`);
 			document.head.appendChild(script);
 		} catch (e) {
-			problem('Activities', e);
+			problem(feature, e);
 		}
 	}
 
@@ -2201,9 +2225,10 @@
 		outfits: () => outfitChoices,
 		slots: slotGroups,
 		putBack: () => (working('Restore') ? putBack() : []),
-		kit: { hookGame, problem, working, gameFunction, settings, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
+		kit: { hookGame, problem, working, gameFunction, settings, itemMenus, ICON, ADDON_NAME, preview: (/** @type {string} */ name) => `${CLOTHES}preview/${name}.png${FRESH}` },
 	};
 	start();
 	startExtras();
-	loadActivities();
+	loadScript('activities.js', 'Activities');
+	loadScript('tv.js', 'TV');
 })();
