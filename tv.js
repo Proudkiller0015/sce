@@ -439,21 +439,30 @@
 				chatWatch.observe(src, { childList: true, subtree: true, characterData: true });
 			}
 		}
+		// (the colours of your own chat, light or dark theme, so its lines look as they do there; read again each time,
+		// the theme can change while it's open)
+		if (src) {
+			const look = getComputedStyle(src);
+			if (log.style.background !== look.backgroundColor) {
+				log.style.background = look.backgroundColor;
+			}
+			if (log.style.color !== look.color) {
+				log.style.color = look.color;
+			}
+		}
 		if (!chatChanged && log.childElementCount) {
 			return;
 		}
 		chatChanged = false;
-		// (the colours of your own chat, light or dark theme, so its lines look as they do there)
-		if (src) {
-			const look = getComputedStyle(src);
-			log.style.background = look.backgroundColor;
-			log.style.color = look.color;
-		}
 		const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
 		const lines = src ? [...src.children].filter((n) => n.classList.contains('ChatMessage')).slice(-80) : [];
 		log.replaceChildren(
 			...lines.map((n) => {
 				const c = /** @type {HTMLElement} */ (n.cloneNode(true));
+				// (each line in the colours it has in your chat: the game's theme styles lines only inside its own log)
+				const look = getComputedStyle(n);
+				c.style.backgroundColor = look.backgroundColor;
+				c.style.color = look.color;
 				// (the copies are only to read, and nothing may find them instead of the real lines: no ids and no
 				// data- marks. WCE removes its faded "sending..." line by its data-nonce, and found our copy first, so the
 				// real one stayed in the chat as a ghost)
@@ -485,6 +494,53 @@
 			box.value = draft;
 		}
 		return true;
+	}
+	/**
+	 * The colours of the TVs' controls, their questions and the full-screen chat: Themed's when it's on (its --tmd-
+	 * colours), else the game's own chat theme, light or dark. Given to each TV as --sce-* values (so the floating
+	 * window, another page, gets them too). The TV's own frame stays a TV, and the red ✕ stays red.
+	 */
+	const PALETTES = {
+		dark: { main: '#101016', element: '#1d1d26', accent: '#c9a0ff', text: '#eeeeee', line: '#333340', button: '#000000bb' },
+		light: { main: '#f4f4f7', element: '#ffffff', accent: '#7a3fc4', text: '#151518', line: '#c8c8d0', button: '#ffffffdd' },
+	};
+	let palette = { key: '', at: -1e9, colors: PALETTES.dark };
+	function currentPalette(/** @type {number} */ now) {
+		if (now - palette.at < 1000) {
+			return palette;
+		}
+		const root = getComputedStyle(document.documentElement);
+		const tmd = (/** @type {string} */ name) => root.getPropertyValue(`--tmd-${name}`).trim();
+		/** @type {Record<string, string>} */
+		let colors;
+		if (tmd('main')) {
+			const element = tmd('element') || PALETTES.dark.element;
+			colors = {
+				main: tmd('main'),
+				element,
+				accent: tmd('accent') || PALETTES.dark.accent,
+				text: tmd('text') || PALETTES.dark.text,
+				line: tmd('accent') || PALETTES.dark.line,
+				button: `color-mix(in srgb, ${element} 85%, transparent)`,
+			};
+		} else {
+			const theme = String((w.Player && w.Player.ChatSettings && w.Player.ChatSettings.ColorTheme) || 'Light');
+			colors = /^dark/i.test(theme) ? PALETTES.dark : PALETTES.light;
+		}
+		const key = JSON.stringify(colors);
+		palette = { key, at: now, colors };
+		return palette;
+	}
+	/** Gives a TV the colours, when they changed. */
+	function paint(/** @type {any} */ s, /** @type {number} */ now) {
+		const p = currentPalette(now);
+		if (s.paint === p.key) {
+			return;
+		}
+		s.paint = p.key;
+		for (const [k, v] of Object.entries(p.colors)) {
+			s.el.style.setProperty(`--sce-${k}`, v);
+		}
 	}
 	/** The player's height for its width (a 16:9 screen in its frame). */
 	const popHeight = (/** @type {number} */ wd) => (wd - 8) * (9 / 16) + 10;
@@ -556,7 +612,7 @@
 			b.type = 'button';
 			b.style.cssText =
 				'position:absolute;top:4px;width:26px;height:26px;padding:0;border:0;border-radius:50%;' +
-				'background:#000b;color:#fff;font:14px/26px sans-serif;cursor:pointer;pointer-events:auto;opacity:.85;';
+				'background:var(--sce-button,#000b);color:var(--sce-text,#fff);font:14px/26px sans-serif;cursor:pointer;pointer-events:auto;opacity:.85;';
 			b.addEventListener('mouseenter', () => (b.style.opacity = '1'));
 			b.addEventListener('mouseleave', () => (b.style.opacity = '.85'));
 			stop(b);
@@ -572,7 +628,7 @@
 		bar.className = 'sce-tv-bar';
 		bar.style.cssText =
 			'position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:12px;' +
-			'background:#000b;color:#fff;font:11px sans-serif;pointer-events:auto;';
+			'background:var(--sce-button,#000b);color:var(--sce-text,#fff);font:11px sans-serif;pointer-events:auto;';
 		stop(bar);
 		const pause = small('sce-tv-pause', () => {
 			const C = ownerOf(key);
@@ -588,7 +644,7 @@
 		seek.min = '0';
 		seek.max = '1000';
 		seek.step = '1';
-		seek.style.cssText = 'flex:1;min-width:0;height:14px;margin:0;cursor:pointer;accent-color:#c9a0ff;';
+		seek.style.cssText = 'flex:1;min-width:0;height:14px;margin:0;cursor:pointer;accent-color:var(--sce-accent,#c9a0ff);';
 		const time = document.createElement('span');
 		time.className = 'sce-tv-time';
 		time.style.cssText = 'flex:none;font-variant-numeric:tabular-nums;opacity:.9;';
@@ -616,7 +672,7 @@
 		vol.max = '100';
 		vol.step = '1';
 		vol.title = "This TV's volume (for you)";
-		vol.style.cssText = 'flex:none;width:56px;height:12px;margin:0;cursor:pointer;accent-color:#c9a0ff;';
+		vol.style.cssText = 'flex:none;width:56px;height:12px;margin:0;cursor:pointer;accent-color:var(--sce-accent,#c9a0ff);';
 		vol.addEventListener('input', () => setTvVolume(key, Number(vol.value)));
 		const volIcon = document.createElement('span');
 		volIcon.textContent = '🔉';
@@ -684,21 +740,22 @@
 		const chat = document.createElement('div');
 		chat.className = 'sce-tv-chat';
 		chat.style.cssText =
-			'position:absolute;top:0;right:0;bottom:0;box-sizing:border-box;display:flex;flex-direction:column;background:#101016;color:#eee;' +
-			'border-left:1px solid #333;pointer-events:auto;z-index:2;font:15px sans-serif;';
+			'position:absolute;top:0;right:0;bottom:0;box-sizing:border-box;display:flex;flex-direction:column;' +
+			'background:var(--sce-main,#101016);color:var(--sce-text,#eee);border-left:1px solid var(--sce-line,#333);pointer-events:auto;z-index:2;font:15px sans-serif;';
 		chat.hidden = true;
 		const chatHead = document.createElement('div');
 		chatHead.textContent = 'Room chat';
-		chatHead.style.cssText = 'flex:none;padding:10px 12px;font-weight:bold;border-bottom:1px solid #333;';
+		chatHead.style.cssText = 'flex:none;padding:10px 12px;font-weight:bold;border-bottom:1px solid var(--sce-line,#333);';
 		const chatLog = document.createElement('div');
 		chatLog.className = 'sce-tv-chatlog';
-		chatLog.style.cssText = 'flex:1;min-height:0;overflow-y:auto;padding:6px 8px;color:#eee;background:#101016;';
+		chatLog.style.cssText = 'flex:1;min-height:0;overflow-y:auto;padding:6px 8px;color:var(--sce-text,#eee);background:var(--sce-main,#101016);';
 		const chatIn = document.createElement('input');
 		chatIn.className = 'sce-tv-chatin';
 		chatIn.type = 'text';
 		chatIn.maxLength = 1000;
 		chatIn.placeholder = 'Talk in the room...';
-		chatIn.style.cssText = 'flex:none;margin:8px;padding:8px 10px;border:1px solid #444;border-radius:16px;background:#1d1d26;color:#fff;font:14px sans-serif;outline:none;';
+		chatIn.style.cssText =
+			'flex:none;margin:8px;padding:8px 10px;border:1px solid var(--sce-line,#444);border-radius:16px;background:var(--sce-element,#1d1d26);color:var(--sce-text,#fff);font:14px sans-serif;outline:none;';
 		chatIn.addEventListener('keydown', (e) => {
 			// (Esc still closes full screen; every other key is the box's, not the game's)
 			if (e.key === 'Escape') {
@@ -823,7 +880,7 @@
 				b.textContent = text;
 				b.title = tip;
 				b.style.cssText =
-					'pointer-events:auto;cursor:pointer;border:0;border-radius:14px;padding:5px 11px;background:#3a3a46;color:#fff;font:13px sans-serif;';
+					'pointer-events:auto;cursor:pointer;border:1px solid var(--sce-line,transparent);border-radius:14px;padding:5px 11px;background:var(--sce-element,#3a3a46);color:var(--sce-text,#fff);font:13px sans-serif;';
 				for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'wheel']) {
 					b.addEventListener(type, (e) => e.stopPropagation());
 				}
@@ -1242,7 +1299,7 @@
 			powerButton.hidden = !prop.Text || !mayPower(ownerOf(s.key), s.item);
 			powerButton.style.top = s.full ? '10px' : '4px';
 
-			powerButton.style.color = s.on ? '#fff' : '#f66';
+			powerButton.style.color = s.on ? '' : '#f66';
 		}
 		const offButton = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-off'));
 		if (offButton) {
@@ -1422,6 +1479,7 @@
 				if (!s.full) {
 					s.chatW = 0;
 				}
+				paint(s, now);
 				sound(s);
 				controls(s);
 				keepInSync(s);
