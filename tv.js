@@ -711,6 +711,7 @@
 			if (!sizing && t.closest('button, input, .sce-tv-bar, .sce-tv-grip')) {
 				return;
 			}
+			s.dragged = false;
 			e.preventDefault();
 			e.stopPropagation();
 			const box = layer;
@@ -718,6 +719,9 @@
 			const move = (/** @type {PointerEvent} */ m) => {
 				const dx = m.clientX - start.x;
 				const dy = m.clientY - start.y;
+				if (Math.abs(dx) + Math.abs(dy) > 4) {
+					s.dragged = true;
+				}
 				const v = sizing ? { ...start.place, w: start.place.w + dx } : { ...start.place, x: start.place.x + dx, y: start.place.y + dy };
 				savePopPlace(clampPop(v, box));
 			};
@@ -843,7 +847,49 @@
 			}
 		});
 		powerButton.textContent = '⏻';
-		ui.append(powerButton, off, mute, win, pop, chatButton, full, bar, grip);
+		// Like a video player: a click on the picture pauses or plays it (for everyone, for whoever may change the TV), a
+		// double click opens or closes full screen (on a popped-out TV it puts it back). Only while the controls show:
+		// otherwise clicks reach the game, as before.
+		const hit = document.createElement('div');
+		hit.className = 'sce-tv-hit';
+		hit.style.cssText = 'position:absolute;inset:0;cursor:pointer;pointer-events:none;';
+		for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend']) {
+			hit.addEventListener(type, (e) => {
+				// (a popped-out TV is still dragged by its picture)
+				if (!shown.get(key)?.pop || type !== 'pointerdown') {
+					e.stopPropagation();
+				}
+			});
+		}
+		/** @type {any} */
+		let clickWait = null;
+		hit.addEventListener('click', (e) => {
+			e.stopPropagation();
+			const s = shown.get(key);
+			if (s && s.dragged) {
+				s.dragged = false;
+				return;
+			}
+			clearTimeout(clickWait);
+			// (a moment's wait: a second click makes it a double click instead)
+			clickWait = setTimeout(() => {
+				const C = ownerOf(key);
+				const t = shown.get(key);
+				if (C && t) {
+					togglePause(C, tvOf(C) || t.item, t);
+				}
+			}, 250);
+		});
+		hit.addEventListener('dblclick', (e) => {
+			clearTimeout(clickWait);
+			const s = shown.get(key);
+			if (!s || s.pop || s.float) {
+				return;
+			}
+			e.stopPropagation();
+			fullKey = fullKey === key ? '' : key;
+		});
+		ui.append(hit, powerButton, off, mute, win, pop, chatButton, full, bar, grip);
 		el.append(screen, led, chat, ui, close);
 		return el;
 	}
@@ -1182,7 +1228,7 @@
 		if (over && m.at > (s.uiAt || 0)) {
 			s.uiAt = m.at;
 		}
-		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && ui.matches(':hover'));
+		const show = !!s.dragging || performance.now() - (s.uiAt || -1e9) < UI_MS || (over && [...ui.children].some((c) => !c.classList.contains('sce-tv-hit') && c.matches(':hover')));
 		// (a small TV, as on the map, shows only ⛶: full screen has every control)
 		const tiny = !s.full && !s.pop && !s.float && r.width < 170;
 		for (const cls of ['.sce-tv-power', '.sce-tv-off', '.sce-tv-mute']) {
@@ -1216,6 +1262,12 @@
 		const st = stateOf(s.item);
 		// (the bar shows to everyone for the volume; pause and the time bar only to whoever may change the TV)
 		const may = mayPower(C, s.item);
+		const hit = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-hit'));
+		if (hit) {
+			const on = may && !!s.media && st.mode !== 'off' && !tiny;
+			hit.style.pointerEvents = on ? 'auto' : 'none';
+			hit.title = on ? (st.mode === 'pause' ? 'Click to play (for everyone) · double click: full screen' : 'Click to pause (for everyone) · double click: full screen') : '';
+		}
 		bar.hidden = tiny || !s.media || st.mode === 'off';
 		bar.style.bottom = s.full ? '14px' : '6px';
 		// (room for the popped-out player's corner grip)
