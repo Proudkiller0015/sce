@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.11';
+	const VERSION = '1.8.12';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -578,6 +578,11 @@
 	function picture(/** @type {string} */ url) {
 		if (/^(?:\.\/)?Icons\/Previews\/SCE\.png$/.test(url)) {
 			return ICON;
+		}
+		// (SCE's map objects: Assets/Map/Objects/Functional/<SlimeTV|SlimeBoombox>.png)
+		const mapObject = /^(?:\.\/)?Assets\/Map\/Objects\/Functional\/(SlimeTV|SlimeBoombox)\.png$/.exec(url);
+		if (mapObject) {
+			return `${BASE}map/${mapObject[1]}.png${FRESH}`;
 		}
 		// (an expression's button in the expression menu: Icons/Expressions/<Group>/<Expression>.png)
 		const icon = /^(?:\.\/)?Icons\/Expressions\/([A-Za-z0-9]+)\/([A-Za-z0-9]+)\.png$/.exec(url);
@@ -1457,8 +1462,8 @@
 	const BADGE = 'SCE';
 	/** How often a newer published version is looked for. */
 	const UPDATE_CHECK = 15 * 60 * 1000;
-	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean, tvs: boolean, tvsAsk: boolean, tvVolume: number }} */
-	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true, tvs: true, tvsAsk: true, tvVolume: 30 };
+	/** @type {{ activities: boolean, restoreCrafts: boolean, updateReady: boolean, updateNotes: boolean, extraSlots: boolean, slotAddOnItems: boolean, tvs: boolean, tvsAsk: boolean, mapPlayers: boolean, tvVolume: number }} */
+	const settings = { activities: true, restoreCrafts: true, updateReady: true, updateNotes: true, extraSlots: true, slotAddOnItems: true, tvs: true, tvsAsk: true, mapPlayers: true, tvVolume: 30 };
 	/** The base TV volume's range and step (%), on the settings page. */
 	const TV_VOLUME = { min: 0, max: 100, step: 10 };
 	try {
@@ -1630,9 +1635,10 @@
 		const PLAYER_BOXES = /** @type {[string, keyof typeof settings, (keyof typeof settings)?][]} */ ([
 			['Show TVs and boomboxes (off: none shows or plays for you)', 'tvs'],
 			["Ask before other people's TVs and boomboxes play (off: play them all)", 'tvsAsk', 'tvs'],
+			["Map rooms' TVs and boomboxes (the room's own, placed on its map)", 'mapPlayers', 'tvs'],
 		]);
-		const CHAT_BOX = TOP + 2 * ROW;
-		const VOLUME_ROW = TOP + 3 * ROW + 10;
+		const CHAT_BOX = TOP + 3 * ROW;
+		const VOLUME_ROW = TOP + 4 * ROW + 10;
 		/** @type {[string, string, string][]} The resets: label, what the count counts, what it does. */
 		const RESETS = [
 			['Forget my Always / Never choices', 'choices', 'forgetChoices'],
@@ -1640,7 +1646,7 @@
 			['Unmute the TVs and boomboxes I muted', 'muted', 'unmuteAll'],
 			['Put the floating player and the chat width back', 'placed', 'resetPlaces'],
 		];
-		const resetBox = (/** @type {number} */ i) => /** @type {[number, number, number, number]} */ ([LEFT, TOP + 5 * ROW + i * (ROW + 6), 760, 60]);
+		const resetBox = (/** @type {number} */ i) => /** @type {[number, number, number, number]} */ ([LEFT, TOP + 6 * ROW - 20 + i * (ROW + 6), 760, 60]);
 		/** What the last reset did. */
 		let playersSaid = '';
 		/** @type {[number, number, number, number]} */

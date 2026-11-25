@@ -18,6 +18,8 @@
 	}
 	w.SCETVLoaded = true;
 	const { hookGame, problem, working, itemMenus, settings, saveSettings, toast } = kit;
+	/** SCE's icon, for the corner of its objects in the map editor. */
+	const ICON = kit.ICON || '';
 	/**
 	 * The page a floating TV plays YouTube through (tv-relay.html, next to SCE): the floating window has no address,
 	 * and YouTube refuses to play for a page without one ("Error 153"). It passes the commands and reports on.
@@ -234,12 +236,262 @@
 		const r = rangeOf(s.item);
 		const C = ownerOf(s.key);
 		const a = w.Player && w.Player.MapData && w.Player.MapData.Pos;
-		const b = C && C.MapData && C.MapData.Pos;
+		// (a map one: from its tile; a worn one: from its owner, who always hears their own)
+		const b = isMapKey(s.key) ? tileOf(s.key) : C && C.MapData && C.MapData.Pos;
 		if (!r || !C || C.IsPlayer() || !a || !b || !Number.isFinite(a.X) || !Number.isFinite(b.X)) {
 			return 1;
 		}
 		const d = Math.hypot(a.X - b.X, a.Y - b.Y);
 		return d >= r ? 0 : d <= r / 2 ? 1 : (r - d) / (r / 2);
+	}
+
+	// ---- Map TVs and boomboxes: objects room admins place in the map editor (Functional, with the teleport pads). What
+	// one plays is kept on its tile the way a sign's text is ("<state>;r<range>;<link>", up to 150 characters), so the
+	// game saves it with the room's map, sends it to everyone, and /mapcopy and /mappaste carry it. Games without SCE
+	// don't know these objects: they draw nothing there and drop the text.
+	const MAP_TV = 9970;
+	const MAP_BB = 9971;
+	const MAP_IDS = new Set([MAP_TV, MAP_BB]);
+	const isMapKey = (/** @type {string} */ key) => key.startsWith('map:');
+	/** The tile of a map key ("map:<x>,<y>" or "map:<x>,<y>:bb"). */
+	function tileOf(/** @type {string} */ key) {
+		const m = /^map:(\d+),(\d+)/.exec(key);
+		return m ? { X: Number(m[1]), Y: Number(m[2]) } : null;
+	}
+	/** Whether map TVs and boomboxes show and play for you (SCE's settings, and TVs at all). */
+	const mapOn = () => tvsOn() && !(settings && settings.mapPlayers === false);
+	/** The map's API, once a map room has made it. */
+	const mapApi = () => (w.MapManager && w.MapManager.Map) || null;
+	/** Stands in for "the character" a map TV belongs to: the room. */
+	const MAP_OWNER = { MemberNumber: 'map', Name: 'the room', Nickname: 'the room', mapRoom: true, IsPlayer: () => false };
+	/**
+	 * A map TV or boombox as if it were a worn one: { Asset, Property: { Text: link, Text2: state, Text3: range }, mapTile },
+	 * or null when there's none on that tile.
+	 */
+	function mapItem(/** @type {string} */ key) {
+		const t = tileOf(key);
+		const map = mapApi();
+		if (!t || !map) {
+			return null;
+		}
+		const id = map.getObjectId(t.X, t.Y);
+		if (!MAP_IDS.has(id) || (id === MAP_BB) !== isBB(key)) {
+			return null;
+		}
+		const config = map.getObjectConfig(t.X, t.Y);
+		const text = config && config.Type === 'Sign' && typeof config.Text === 'string' ? config.Text : '';
+		const m = /^([^;]*);(r\d+)?;([\s\S]*)$/.exec(text);
+		const bb = id === MAP_BB;
+		return {
+			Asset: { Name: bb ? BB_NAME : NAME, Group: { Name: 'Map' } },
+			Property: { Text: m ? m[3] : '', Text2: m ? m[1] : '', Text3: m && m[2] ? `;${m[2]}` : '' },
+			mapTile: t,
+		};
+	}
+	/** Saves a map TV's link, state and range on its tile, for everyone (admins only: the game sends maps for them). */
+	function mapSave(/** @type {any} */ item) {
+		const map = mapApi();
+		if (!map || !item || !item.mapTile || !(typeof w.ChatRoomPlayerIsAdmin === 'function' && w.ChatRoomPlayerIsAdmin())) {
+			return;
+		}
+		const p = item.Property || {};
+		const r = /;r(\d+)/.exec(p.Text3 || '');
+		const text = `${p.Text2 || ''};${r ? `r${r[1]}` : ''};${p.Text || ''}`.slice(0, 150);
+		map.setObjectConfig(item.mapTile.X, item.mapTile.Y, { Type: 'Sign', Text: text });
+		map.updateGlobalMapData();
+	}
+	/** Sends a change of a TV or boombox: to the room for a worn one, onto its tile for a map one. */
+	function commit(/** @type {any} */ C, /** @type {any} */ item) {
+		if (item && item.mapTile) {
+			mapSave(item);
+		} else if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
+			w.ChatRoomCharacterItemUpdate(C, item.Asset.Group.Name);
+		}
+	}
+	/** The TV or boombox a key stands for now (worn, or on the map). */
+	function itemOf(/** @type {string} */ key, /** @type {any} */ C = ownerOf(key)) {
+		return isMapKey(key) ? mapItem(key) : tvOf(C, isBB(key));
+	}
+	/** The tiles with a map TV or boombox, read off the map's objects. */
+	function mapTiles() {
+		const map = mapApi();
+		const W = Number(w.ChatRoomMapViewWidth) || 40;
+		const H = Number(w.ChatRoomMapViewHeight) || 40;
+		/** @type {{ X: number, Y: number, bb: boolean }[]} */
+		const out = [];
+		if (!map) {
+			return out;
+		}
+		for (let i = 0; i < W * H; i++) {
+			const id = map.getObjectId(i % W, Math.floor(i / W));
+			if (MAP_IDS.has(id)) {
+				out.push({ X: i % W, Y: Math.floor(i / W), bb: id === MAP_BB });
+			}
+		}
+		return out;
+	}
+	/**
+	 * Where a map TV's picture (or a boombox) is on the game's canvas, as the map view draws its object: [left, top,
+	 * right, bottom], its screen for a TV; null out of view.
+	 */
+	function mapRect(/** @type {{ X: number, Y: number }} */ tile, /** @type {boolean} */ bb) {
+		const r = tileRect(tile);
+		const map = mapApi();
+		if (!r || !map) {
+			return null;
+		}
+		const [x, y, T] = r;
+		const settingsOf = typeof map.getObjectSettings === 'function' ? map.getObjectSettings(tile.X, tile.Y) : null;
+		const size = ((settingsOf && settingsOf.Size) || 100) / 100;
+		const obj = MAP_DEFS[bb ? 1 : 0];
+		const left = x + T * (obj.Left || 0) + (T * (1 - size)) / 2;
+		const top = y + T * (obj.Top || 0) + T * (1 - size);
+		const k = T * size;
+		// (the TV's screen in its picture: x 8-92, y 17-66 of 100; the boombox: all of it)
+		return bb ? [left + k * 0.07, top + k * 0.3, left + k * 0.93, top + k * 0.96] : [left + k * 0.08, top + k * 0.17, left + k * 0.92, top + k * 0.66];
+	}
+	/** Where a map tile is on the game's canvas ([left, top, size]), as the map view draws it, or null out of view. */
+	function tileRect(/** @type {{ X: number, Y: number }} */ tile) {
+		const me = w.Player && w.Player.MapData && w.Player.MapData.Pos;
+		if (!me) {
+			return null;
+		}
+		const W = Number(w.ChatRoomMapViewSplitPosition) || 1000;
+		const T = 1000 / Math.max((Number(w.ChatRoomMapViewPerceptionRange) || 4) * 2 + 1, 1);
+		const x = (tile.X - me.X) * T + (W - T) / 2;
+		const y = (tile.Y - me.Y) * T + (1000 - T) / 2;
+		return x + T < 0 || x > W || y + T < 0 || y > 1000 ? null : [x, y, T];
+	}
+	/** The two objects (Functional, like the teleport pads), their pictures SCE's (sce.js sends the game's requests there). */
+	const MAP_DEFS = [
+		{ ID: MAP_TV, Type: 'Functional', Style: 'SlimeTV', Name: 'TV (SCE)', Top: -0.25, DefaultObjectConfig: { Type: 'Sign', Text: '' }, OnClick: (/** @type {number} */ x, /** @type {number} */ y) => mapMenu(x, y) },
+		{ ID: MAP_BB, Type: 'Functional', Style: 'SlimeBoombox', Name: 'Boombox (SCE)', Top: -0.1, DefaultObjectConfig: { Type: 'Sign', Text: '' }, OnClick: (/** @type {number} */ x, /** @type {number} */ y) => mapMenu(x, y) },
+	];
+	/** Adds them to the game's map objects, once (the game's own list and loader). */
+	function addMapObjects() {
+		// (the game's registry is a script-level const)
+		if (typeof MapDataLoadObjects !== 'function' || typeof MapDataObjects === 'undefined') {
+			return false;
+		}
+		if (!MapDataObjects.has(MAP_TV)) {
+			MapDataLoadObjects(MAP_DEFS);
+		}
+		return true;
+	}
+
+	/** A click on a map TV or boombox: its menu (the game's map dialog). */
+	function mapMenu(/** @type {number} */ x, /** @type {number} */ y) {
+		try {
+			const map = mapApi();
+			if (!map || typeof w.ChatRoomMapViewShowDialogMenu !== 'function') {
+				return;
+			}
+			const bb = map.getObjectId(x, y) === MAP_BB;
+			const key = `map:${x},${y}${bb ? ':bb' : ''}`;
+			const item = mapItem(key);
+			if (!item) {
+				return;
+			}
+			const it = bb ? 'boombox' : 'TV';
+			const admin = typeof w.ChatRoomPlayerIsAdmin === 'function' && w.ChatRoomPlayerIsAdmin();
+			const p = item.Property;
+			const st = stateOf(item);
+			const root = document.createElement('div');
+			root.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+			const row = () => {
+				const r = document.createElement('div');
+				r.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;';
+				root.append(r);
+				return r;
+			};
+			const button = (/** @type {string} */ text, /** @type {() => void} */ act) => {
+				const b = document.createElement('button');
+				b.className = 'chat-room-map-view-dialog-button';
+				b.type = 'button';
+				b.textContent = text;
+				b.addEventListener('click', () => {
+					try {
+						act();
+					} catch (e) {
+						problem(FEATURE, e);
+					}
+					mapMenu(x, y);
+				});
+				return b;
+			};
+			const save = (/** @type {Record<string, string>} */ props) => {
+				item.Property = { ...item.Property, ...props };
+				mapSave(item);
+			};
+			if (admin) {
+				const input = document.createElement('input');
+				input.type = 'text';
+				input.maxLength = 130;
+				input.value = p.Text || '';
+				input.placeholder = bb ? 'YouTube or music file (.mp3) link' : 'YouTube or video file (.mp4) link';
+				input.style.cssText = 'width:100%;box-sizing:border-box;';
+				for (const type of ['keydown', 'keyup', 'keypress']) {
+					input.addEventListener(type, (e) => e.stopPropagation());
+				}
+				root.append(input);
+				const r1 = row();
+				r1.append(
+					button('▶ Play', () => {
+						const link = input.value.trim();
+						if (!parseLink(link)) {
+							status = "That isn't a YouTube link or a link to a video or music file.";
+							return;
+						}
+						save({ Text: link, Text2: String(Math.round(serverNow())) });
+						say(`${nick(w.Player)} turns on the room's ${it}.`);
+					}),
+				);
+				if (p.Text && st.mode !== 'off') {
+					r1.append(
+						button(st.mode === 'pause' ? '▶ Play on' : '⏸ Pause', () => {
+							const s = shown.get(key);
+							const d = s ? lengthOf(s) : 0;
+							if (st.mode === 'pause') {
+								save({ Text2: String(Math.round(serverNow() - st.at * 1000)) });
+							} else {
+								const at = d ? wantedAt(item) % d : wantedAt(item);
+								save({ Text2: `p${at.toFixed(2)}` });
+							}
+						}),
+						button('■ Off', () => {
+							save({ Text2: 'off' });
+							say(`${nick(w.Player)} turns the room's ${it} off.`);
+						}),
+					);
+				}
+				const r2 = row();
+				const range = rangeOf(item);
+				const i = RANGES.indexOf(range);
+				const step = (/** @type {number} */ d) => {
+					const next = RANGES[Math.max(0, Math.min(RANGES.length - 1, i + d))];
+					save({ Text3: `;r${next}` });
+				};
+				const label = document.createElement('span');
+				label.textContent = `Heard: ${range ? `${range} tiles` : 'whole map'}`;
+				r2.append(button('−', () => step(-1)), label, button('+', () => step(1)));
+			}
+			// For everyone: hide this one (for you), or watch it full screen.
+			const r3 = row();
+			const own = always()[memberOf(key)];
+			r3.append(
+				button(own === 'off' ? `👁 Show this ${it} again (for me)` : `🙈 Hide this ${it} (for me)`, () => setAlways(memberOf(key), own === 'off' ? '' : 'off')),
+			);
+			if (!bb && p.Text && st.mode !== 'off' && shown.get(key)?.media) {
+				r3.append(button('⛶ Full screen', () => (fullKey = key)));
+			}
+			const note = document.createElement('div');
+			note.style.cssText = 'opacity:.8;font-size:.9em;';
+			note.textContent = status || (p.Text && st.mode !== 'off' ? `Playing: ${p.Text}` : admin ? `Paste a link and press Play.` : `Nothing is playing.`);
+			status = '';
+			w.ChatRoomMapViewShowDialogMenu(bb ? 'Boombox (SCE)' : 'TV (SCE)', root, note);
+		} catch (e) {
+			problem(FEATURE, e);
+		}
 	}
 
 	// ---- On screen
@@ -654,7 +906,7 @@
 	function makeTV(/** @type {string} */ key) {
 		const el = document.createElement('div');
 		el.className = isBB(key) ? 'sce-tv sce-bb' : 'sce-tv';
-		el.style.cssText = isBB(key)
+		el.style.cssText = isBB(key) || isMapKey(key)
 			? 'position:absolute;box-sizing:border-box;pointer-events:none;'
 			: 'position:absolute;box-sizing:border-box;background:linear-gradient(#26262c,#121216);border-radius:6px;' +
 				'box-shadow:0 0 0 1px #4a4a55 inset,0 6px 18px #000a;pointer-events:none;';
@@ -707,7 +959,7 @@
 			const C = ownerOf(key);
 			const s = shown.get(key);
 			if (C && s) {
-				togglePause(C, tvOf(C, isBB(key)) || s.item, s);
+				togglePause(C, itemOf(key, C) || s.item, s);
 			}
 		});
 		pause.style.cssText += 'position:static;flex:none;width:22px;height:22px;font-size:12px;line-height:22px;background:transparent;';
@@ -734,7 +986,7 @@
 			const s = shown.get(key);
 			if (C && s) {
 				s.dragging = false;
-				seekTo(C, tvOf(C, isBB(key)) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
+				seekTo(C, itemOf(key, C) || s.item, s, (Number(seek.value) / 1000) * lengthOf(s));
 			}
 		});
 		// (how loud this person's TV is for you: everyone gets it, not only who may change the TV)
@@ -916,7 +1168,7 @@
 			const C = ownerOf(key);
 			const s = shown.get(key);
 			if (C && s) {
-				power(C, tvOf(C, isBB(key)) || s.item, !s.on);
+				power(C, itemOf(key, C) || s.item, !s.on);
 			}
 		});
 		powerButton.textContent = '⏻';
@@ -949,7 +1201,7 @@
 				const C = ownerOf(key);
 				const t = shown.get(key);
 				if (C && t) {
-					togglePause(C, tvOf(C, isBB(key)) || t.item, t);
+					togglePause(C, itemOf(key, C) || t.item, t);
 				}
 			}, 250);
 		});
@@ -995,7 +1247,7 @@
 			ask.style.cssText =
 				'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ccc;font:13px sans-serif;text-align:center;padding:30px 6px 6px;';
 			const C = ownerOf(s.key);
-			const who = C ? `${nick(C)}'s` : "This person's";
+			const who = C && C.mapRoom ? "This room's" : C ? `${nick(C)}'s` : "This person's";
 			const choice = (/** @type {string} */ text, /** @type {string} */ cls, /** @type {string} */ tip, /** @type {() => void} */ act) => {
 				const b = document.createElement('button');
 				b.className = cls;
@@ -1209,6 +1461,9 @@
 	}
 	/** The character a TV on screen belongs to (in the room), or null. */
 	function ownerOf(/** @type {string} */ key) {
+		if (isMapKey(key)) {
+			return w.CurrentScreen === 'ChatRoom' && mapItem(key) ? MAP_OWNER : null;
+		}
 		const list = Array.isArray(w.ChatRoomCharacter) ? w.ChatRoomCharacter : [];
 		const m = memberOf(key);
 		return list.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === m) || null;
@@ -1220,6 +1475,10 @@
 	function mayPower(/** @type {any} */ C, /** @type {any} */ item) {
 		if (!C || !item) {
 			return false;
+		}
+		// (a map one: the room's admins, who may change the map)
+		if (item.mapTile) {
+			return typeof w.ChatRoomPlayerIsAdmin === 'function' && !!w.ChatRoomPlayerIsAdmin();
 		}
 		if (C.IsPlayer()) {
 			return true;
@@ -1234,9 +1493,7 @@
 			return;
 		}
 		item.Property = { ...prop, Text2: on ? String(Math.round(serverNow())) : 'off' };
-		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-			w.ChatRoomCharacterItemUpdate(C, item.Asset.Group.Name);
-		}
+		commit(C, item);
 		const it = item.Asset.Name === BB_NAME ? 'boombox' : 'TV';
 		const tv = C.IsPlayer() ? `the ${it}` : `${nick(C)}'s ${it}`;
 		say(`${nick(w.Player)} turns ${tv} ${on ? 'on' : 'off'}.`);
@@ -1273,9 +1530,7 @@
 			return;
 		}
 		item.Property = { ...(item.Property || {}), Text2: text2 };
-		if (typeof w.ChatRoomCharacterItemUpdate === 'function') {
-			w.ChatRoomCharacterItemUpdate(C, item.Asset.Group.Name);
-		}
+		commit(C, item);
 		if (s.media) {
 			s.media.synced = 0;
 		}
@@ -1447,6 +1702,15 @@
 
 		}
 
+		// (a map one stays on the map: no pop-out or floating window)
+		if (isMapKey(s.key) && !isBB(s.key)) {
+			for (const cls of ['.sce-tv-pop', '.sce-tv-win']) {
+				const b = /** @type {HTMLElement | null} */ (s.el.querySelector(cls));
+				if (b) {
+					b.hidden = true;
+				}
+			}
+		}
 		// (a boombox has no picture: no full screen, pop-out, floating window or chat beside it)
 		if (isBB(s.key)) {
 			for (const cls of ['.sce-tv-full', '.sce-tv-pop', '.sce-tv-win', '.sce-tv-chatbtn']) {
@@ -1514,6 +1778,29 @@
 			// In a map room a TV or boombox is heard by its range, on screen or not: everyone in the room wearing one has a
 			// player (hidden while the game doesn't draw them), heard as far as its range reaches.
 			const onMap = w.CurrentScreen === 'ChatRoom' && typeof w.ChatRoomMapViewIsActive === 'function' && w.ChatRoomMapViewIsActive();
+			// (the room's map TVs and boomboxes: on their tiles while in view, heard by their range)
+			if (onMap && mapOn()) {
+				for (const t of mapTiles()) {
+					const k = `map:${t.X},${t.Y}${t.bb ? ':bb' : ''}`;
+					const it = mapItem(k);
+					if (!it || !it.Property.Text) {
+						continue;
+					}
+					let e = shown.get(k);
+					if (!e) {
+						e = { key: k, box: [0, 0, 0, 0], scale: 1, item: it, seen: -1e9, heard: now };
+						shown.set(k, e);
+					}
+					e.item = it;
+					e.heard = now;
+					const box = mapRect(t, t.bb);
+					if (box) {
+						e.box = box;
+						e.scale = (box[2] - box[0]) / 400;
+						e.seen = now;
+					}
+				}
+			}
 			if (onMap && Array.isArray(w.ChatRoomCharacter)) {
 				for (const C of w.ChatRoomCharacter) {
 					if (!C || blocked(C)) {
@@ -1540,10 +1827,8 @@
 			// room, for one); then it closes.
 			const fullTV = fullKey ? shown.get(fullKey) : null;
 			if (fullTV) {
-				const C = w.CurrentScreen === 'ChatRoom' && Array.isArray(w.ChatRoomCharacter)
-					? w.ChatRoomCharacter.find((/** @type {any} */ c) => String(c.MemberNumber ?? `npc${c.CharacterID}`) === fullKey)
-					: null;
-				const item = tvOf(C);
+				const C = w.CurrentScreen === 'ChatRoom' ? ownerOf(fullKey) : null;
+				const item = C ? itemOf(fullKey, C) : null;
 				if (item) {
 					fullTV.item = item;
 					fullTV.seen = now;
@@ -1560,7 +1845,7 @@
 			const stays = (/** @type {string} */ key) => {
 				const t = key ? shown.get(key) : null;
 				const C = t && inRoom ? ownerOf(key) : null;
-				const item = C && !blocked(C) ? tvOf(C, isBB(key)) : null;
+				const item = C && !blocked(C) ? itemOf(key, C) : null;
 				if (!t || !item || !(item.Property || {}).Text) {
 					return false;
 				}
@@ -1595,8 +1880,9 @@
 				s.audible = audible;
 				const owner = audible ? null : ownerOf(key);
 				const gone =
-					!audible &&
-					(w.CurrentScreen !== 'ChatRoom' || !tvOf(owner, isBB(key)) || !(tvOf(owner, isBB(key)).Property || {}).Text || blocked(owner));
+					(isMapKey(key) && !mapOn()) ||
+					(!audible &&
+					(w.CurrentScreen !== 'ChatRoom' || !itemOf(key, owner) || !(itemOf(key, owner).Property || {}).Text || blocked(owner)));
 				// (only the popped-out TV plays outside the chat room screen)
 				const away = w.CurrentScreen !== 'ChatRoom' && !s.pop && !s.float;
 				if (!at || gone || now - Math.max(s.seen, s.heard || -1e9) > KEEP_MS) {
@@ -1644,7 +1930,7 @@
 					});
 				} else {
 					const [x0, y0, x1, y1] = s.box.map((v) => v * at.k);
-					const bezel = isBB(key) ? 0 : Math.max(2, TV.bezel * s.scale * at.k);
+					const bezel = isBB(key) || isMapKey(key) ? 0 : Math.max(2, TV.bezel * s.scale * at.k);
 					Object.assign(s.el.style, {
 						left: `${x0}px`,
 						top: `${y0}px`,
@@ -1726,7 +2012,7 @@
 		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
 		return C ? `${C.MemberNumber ?? `npc${C.CharacterID}`}${menuBB ? ':bb' : ''}` : '';
 	}
-	const nick = (/** @type {any} */ C) => (typeof w.CharacterNickname === 'function' ? w.CharacterNickname(C) : C.Name);
+	const nick = (/** @type {any} */ C) => (C && C.mapRoom ? 'the room' : typeof w.CharacterNickname === 'function' ? w.CharacterNickname(C) : C.Name);
 	function whose() {
 		const C = typeof w.CharacterGetCurrent === 'function' ? w.CharacterGetCurrent() : null;
 		const it = menuBB ? 'boombox' : 'TV';
@@ -1935,6 +2221,54 @@
 			problem(FEATURE, e);
 		}
 	}, 1000);
+	// The map objects, once the game's map code is there; the game keeps sign text only on its signs: on SCE's objects
+	// too (its own map's check, patched on its prototype: it's a method of the map, not a page function); and SCE's
+	// icon in the corner of their buttons in the map editor.
+	const mapReady = setInterval(() => {
+		try {
+			if (!addMapObjects()) {
+				return;
+			}
+			clearInterval(mapReady);
+			const map = mapApi();
+			const proto = map && Object.getPrototypeOf(map);
+			if (proto && typeof proto.isValidObjectConfig === 'function' && !proto.isValidObjectConfig.sceMap) {
+				const original = proto.isValidObjectConfig;
+				const patched = function (/** @type {any[]} */ ...args) {
+					try {
+						const [index, type] = this.unpackIndex(...args);
+						if (type === 'Sign' && MAP_IDS.has(this.getObjectId(index))) {
+							return true;
+						}
+					} catch {
+						// (anything unexpected: the game's own answer)
+					}
+					return original.apply(this, args);
+				};
+				patched.sceMap = true;
+				proto.isValidObjectConfig = patched;
+			}
+		} catch (e) {
+			clearInterval(mapReady);
+			problem(FEATURE, e);
+		}
+	}, 500);
+	hookGame('ChatRoomMapViewCreateMapElementItem', 0, FEATURE, (args, next) => {
+		const el = next(args);
+		const item = args[0];
+		if (el && item && MAP_IDS.has(item.ID) && ICON && typeof el.append === 'function') {
+			const badge = document.createElement('img');
+			badge.src = ICON;
+			badge.alt = 'SCE';
+			badge.title = 'Added by Slime Clothing Extension';
+			badge.style.cssText = 'position:absolute;right:2px;bottom:2px;width:22%;height:auto;pointer-events:none;';
+			if (getComputedStyle(el).position === 'static') {
+				el.style.position = 'relative';
+			}
+			el.append(badge);
+		}
+		return el;
+	});
 	hookGame('ServerInfo', 0, FEATURE, (args, next) => {
 		const r = next(args);
 		const t = args[0] && args[0].Time;
@@ -1991,5 +2325,5 @@
 		},
 		resetPlaces: () => forget([POP_KEY, CHAT_W_KEY]),
 	};
-	w.SCETV = { parseLink, placeOf, rangeOf, hearing, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key, prefs };
+	w.SCETV = { parseLink, placeOf, rangeOf, hearing, mapItem, mapRect, mapMenu, MAP_TV, MAP_BB, shown, serverNow, full: () => fullKey, popped: () => popKey, floating: () => floating && floating.key, prefs };
 })();
