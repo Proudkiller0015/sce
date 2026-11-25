@@ -1240,12 +1240,13 @@
 			// Someone else's TV: nothing of it loads until you choose to watch it.
 			const ask = document.createElement('div');
 			ask.className = 'sce-tv-ask';
+			ask.style.cssText =
+				'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ccc;font:13px sans-serif;text-align:center;padding:30px 6px 6px;';
+			// (after cssText, which would wipe them)
 			if (isBB(s.key)) {
 				ask.style.background = '#000c';
 				ask.style.borderRadius = '10px';
 			}
-			ask.style.cssText =
-				'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#ccc;font:13px sans-serif;text-align:center;padding:30px 6px 6px;';
 			const C = ownerOf(s.key);
 			const who = C && C.mapRoom ? "This room's" : C ? `${nick(C)}'s` : "This person's";
 			const choice = (/** @type {string} */ text, /** @type {string} */ cls, /** @type {string} */ tip, /** @type {() => void} */ act) => {
@@ -1349,11 +1350,9 @@
 			}
 		});
 		v.addEventListener('error', () => {
-			screen.replaceChildren();
-			const note = document.createElement('div');
-			note.textContent = "This video can't play here";
-			note.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;font:14px sans-serif;';
-			screen.append(note);
+			if (s.media && s.media.video === v) {
+				cantPlay(s, isBB(s.key) ? "This music file can't play (the link is broken, or the site won't share it)." : "This video can't play here (the link is broken, or the site won't share it).");
+			}
 		});
 		s.media = { video: v };
 		screen.append(v);
@@ -1365,6 +1364,41 @@
 			v.muted = true;
 			v.play().catch(() => {});
 		});
+	}
+
+	/**
+	 * A player that can't play its link says so on itself, and tells you once per link: a boombox's YouTube player is
+	 * invisible, so without this a song YouTube refuses is only silence.
+	 */
+	const warned = new Set();
+	function cantPlay(/** @type {any} */ s, /** @type {string} */ text) {
+		if (!s.media || s.media.failed) {
+			return;
+		}
+		s.media.failed = text;
+		const screen = /** @type {HTMLElement | null} */ (s.el.querySelector('.sce-tv-screen'));
+		if (screen) {
+			const note = document.createElement('div');
+			note.className = 'sce-tv-cant';
+			note.textContent = isBB(s.key) ? "⚠ Can't play this" : `⚠ ${text}`;
+			note.title = text;
+			note.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;background:#000d;color:#eee;font:${isBB(s.key) ? '11px' : '14px'} sans-serif;${isBB(s.key) ? 'border-radius:10px;' : ''}`;
+			screen.append(note);
+		}
+		const link = String((s.item && s.item.Property && s.item.Property.Text) || '');
+		if (typeof toast === 'function' && !warned.has(`${s.key}|${link}`)) {
+			warned.add(`${s.key}|${link}`);
+			const C = ownerOf(s.key);
+			const whose = C && C.mapRoom ? "This room's" : C && C.IsPlayer && C.IsPlayer() ? 'Your' : C ? `${nick(C)}'s` : 'A';
+			toast(`⚠ ${whose} ${isBB(s.key) ? 'boombox' : 'TV'} can't play its link`, text, 10000);
+		}
+	}
+	/** YouTube's reasons a video won't play in a player on another site (the player's onError codes). */
+	function ytRefusal(/** @type {number} */ code) {
+		if (code === 101 || code === 150 || code === 100) {
+			return 'YouTube only plays this one on YouTube (its uploader chose that, or it is private). Try a "lyrics" or "Topic" upload of it, or an mp3 link.';
+		}
+		return "YouTube couldn't play this video here. Try another link.";
 	}
 
 	const YT_ORIGIN = 'https://www.youtube-nocookie.com';
@@ -1382,6 +1416,10 @@
 			}
 			try {
 				const d = JSON.parse(e.data);
+				if (d && d.event === 'onError') {
+					cantPlay(s, ytRefusal(Number(d.info)));
+					continue;
+				}
 				const info = d && d.info;
 				if (info && typeof info === 'object') {
 					if (typeof info.currentTime === 'number') {

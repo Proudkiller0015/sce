@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.13",
+		"title": "Slime Clothing Extension v1.8.13",
+		"text": "📻 A boombox or TV that can't play its link now says so, with the reason, instead of staying silent. Most often it's a song whose uploader only lets it play on YouTube itself (many official music videos): a \"lyrics\" or \"Topic\" upload of the same song usually works, or an mp3 link."
+	},
+	{
 		"id": "1.8.12",
 		"title": "Slime Clothing Extension v1.8.12",
 		"text": "🗺️ Map TVs and boomboxes: room admins place them in the map editor (Functional items, with the SCE icon). Click one: admins set its link, play, pause, turn it off and set how far it's heard; everyone can hide it for themselves or watch a TV full screen. Its link stays with the room's map, also through /mapcopy and /mappaste. Players without SCE see an empty tile. Settings > SCE > 📺 Players can turn them all off. 📻 The boombox's music now has its time bar (on its own row: it had no room)."
