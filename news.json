@@ -2,7 +2,7 @@
 	{
 		"id": "1.8.12",
 		"title": "Slime Clothing Extension v1.8.12",
-		"text": "🗺️ Map TVs and boomboxes: room admins place them in the map editor (Functional items, with the SCE icon). Click one: admins set its link, play, pause, turn it off and set how far it's heard; everyone can hide it for themselves or watch a TV full screen. Its link stays with the room's map, also through /mapcopy and /mappaste. Players without SCE see an empty tile. Settings > SCE > 📺 Players can turn them all off."
+		"text": "🗺️ Map TVs and boomboxes: room admins place them in the map editor (Functional items, with the SCE icon). Click one: admins set its link, play, pause, turn it off and set how far it's heard; everyone can hide it for themselves or watch a TV full screen. Its link stays with the room's map, also through /mapcopy and /mappaste. Players without SCE see an empty tile. Settings > SCE > 📺 Players can turn them all off. 📻 The boombox's music now has its time bar (on its own row: it had no room)."
 	},
 	{
 		"id": "1.8.11",

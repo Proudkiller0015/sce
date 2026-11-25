@@ -952,7 +952,7 @@
 		const bar = document.createElement('div');
 		bar.className = 'sce-tv-bar';
 		bar.style.cssText =
-			'position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:12px;' +
+			'position:absolute;left:6px;right:6px;bottom:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:3px 6px;border-radius:12px;' +
 			'background:var(--sce-button,#000b);color:var(--sce-text,#fff);font:11px sans-serif;pointer-events:auto;';
 		stop(bar);
 		const pause = small('sce-tv-pause', () => {
@@ -1619,6 +1619,11 @@
 		const seek = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-seek'));
 		const time = /** @type {HTMLElement} */ (bar.querySelector('.sce-tv-time'));
 		seek.hidden = !d || !may;
+		// (a narrow player, a boombox above all: the time bar gets its own row above the buttons, or it would have no room)
+		const narrow = s.el.getBoundingClientRect().width < 260;
+		seek.style.order = narrow ? '-1' : '';
+		seek.style.flexBasis = narrow ? '100%' : '';
+		/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-vol')).style.width = narrow ? '34px' : '56px';
 		/** @type {HTMLElement} */ (bar.querySelector('.sce-tv-pause')).hidden = !may;
 		const vol = /** @type {HTMLInputElement} */ (bar.querySelector('.sce-tv-vol'));
 		if (s.el.ownerDocument.activeElement !== vol) {
