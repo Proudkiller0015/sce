@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.14';
+	const VERSION = '1.8.15';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -249,6 +249,7 @@
 		}
 		try {
 			addEyeGlow();
+			hookGlowButtons();
 		} catch (e) {
 			problem('Glowing eyes', e);
 		}
@@ -600,8 +601,13 @@
 	// (each eye's centre in the Fluids picture, which the game draws at the face: the game's Eyes and its mirror Eyes2)
 	const GLOW_AT = { Left: [22.38, 14.03], Right: [76.62, 14.03] };
 	const GLOW_SIZE = [110, 52];
-	// (where an eye's colour is read: Echo's eye on that side when worn, else the game's)
-	const GLOW_FROM = { Left: ['左眼_Luzi', 'Eyes'], Right: ['右眼_Luzi', 'Eyes2'] };
+	// (where an eye's colour is read: Echo's eye on that side when worn, else the game's. Sides are the viewer's: Echo's
+	// 左眼 is the character's own left eye, drawn on the viewer's right, like the game's Eyes2)
+	const GLOW_FROM = { Left: ['右眼_Luzi', 'Eyes'], Right: ['左眼_Luzi', 'Eyes2'] };
+	/** Where a player keeps the glow colours they picked (their shared settings): { Left?: "#rrggbb", Right?: ... }. */
+	const GLOW_KEY = 'SCEGlow';
+	/** @type {Map<number, { Left?: string, Right?: string }>} Member number -> glow colours they told the room. */
+	const roomGlows = new Map();
 	/** @type {Map<string, HTMLCanvasElement>} */
 	const glowPictures = new Map();
 
@@ -641,6 +647,11 @@
 	 * white too); grey, black or white eyes glow white. Violet when no eye is worn.
 	 */
 	function glowHue(/** @type {any} */ C, /** @type {'Left' | 'Right'} */ side) {
+		const picked = glowPicked(C)[side];
+		if (picked) {
+			const hsl = rgbHsl(/** @type {number[]} */ (hexRgb(picked)));
+			return colourfulness(hsl) < 0.12 ? { hue: 0, grey: true } : { hue: hsl[0], grey: false };
+		}
 		for (const group of GLOW_FROM[side]) {
 			const item = Array.isArray(C.Appearance) ? C.Appearance.find((/** @type {any} */ a) => a.Asset && a.Asset.Group.Name === group) : null;
 			if (!item) {
@@ -651,8 +662,7 @@
 			for (const colour of Array.isArray(raw) ? raw : [raw]) {
 				const rgb = hexRgb(colour);
 				const hsl = rgb && rgbHsl(rgb);
-				// (how colourful it looks: saturation counts less in very dark or very light colours)
-				const score = hsl ? hsl[1] * Math.min(1, hsl[2] / 0.15, (1 - hsl[2]) / 0.15) : -1;
+				const score = hsl ? colourfulness(hsl) : -1;
 				if (hsl && (!best || score > best.score)) {
 					best = { hue: hsl[0], score };
 				}
@@ -662,6 +672,154 @@
 			}
 		}
 		return { hue: 272, grey: false };
+	}
+	/** How colourful a colour looks (0-1): saturation counts less in very dark or very light colours. */
+	function colourfulness(/** @type {number[]} */ [, s, l]) {
+		return s * Math.min(1, l / 0.15, (1 - l) / 0.15);
+	}
+	/** Only the "#rrggbb" glow colours of a stored or received value. */
+	function cleanGlow(/** @type {any} */ value) {
+		/** @type {{ Left?: string, Right?: string }} */
+		const out = {};
+		for (const side of /** @type {const} */ (['Left', 'Right'])) {
+			const c = value && typeof value === 'object' ? value[side] : null;
+			if (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)) {
+				out[side] = c.toLowerCase();
+			}
+		}
+		return out;
+	}
+	/** The glow colours character C picked: yours from your settings, others' from what their SCE told the room. */
+	function glowPicked(/** @type {any} */ C) {
+		if (!C) {
+			return {};
+		}
+		if (C === w.Player || (typeof C.IsPlayer === 'function' && C.IsPlayer())) {
+			return cleanGlow(w.Player && w.Player.OnlineSharedSettings && w.Player.OnlineSharedSettings[GLOW_KEY]);
+		}
+		return roomGlows.get(C.MemberNumber) || cleanGlow(C.OnlineSharedSettings && C.OnlineSharedSettings[GLOW_KEY]);
+	}
+	/** The colour one of your eyes glows in, as "#rrggbb" (for the colour buttons and the picker). */
+	function glowHex(/** @type {'Left' | 'Right'} */ side) {
+		const picked = glowPicked(w.Player)[side];
+		if (picked) {
+			return picked;
+		}
+		const { hue, grey } = glowHue(w.Player, side);
+		return '#' + hslRgb(hue, grey ? 0 : 1, grey ? 0.92 : 0.6).map((v) => v.toString(16).padStart(2, '0')).join('');
+	}
+	/**
+	 * Sets the glow colour of one of your eyes ('' = the eye's own colour again). Saved and told to the room only when
+	 * `save` (the picker's final choice); while the picker is dragged only your own view follows.
+	 */
+	function setGlow(/** @type {'Left' | 'Right'} */ side, /** @type {string} */ hex, /** @type {boolean} */ save) {
+		const p = w.Player;
+		if (!p || !p.OnlineSharedSettings) {
+			return;
+		}
+		const glow = cleanGlow(p.OnlineSharedSettings[GLOW_KEY]);
+		if (/^#[0-9a-f]{6}$/i.test(hex)) {
+			glow[side] = hex.toLowerCase();
+		} else {
+			delete glow[side];
+		}
+		if (Object.keys(glow).length) {
+			p.OnlineSharedSettings[GLOW_KEY] = glow;
+		} else {
+			delete p.OnlineSharedSettings[GLOW_KEY];
+		}
+		if (typeof w.CharacterRefresh === 'function') {
+			w.CharacterRefresh(p, false, false);
+		}
+		paintGlowButtons();
+		if (save) {
+			if (w.ServerAccountUpdate) {
+				w.ServerAccountUpdate.QueueData({ OnlineSharedSettings: p.OnlineSharedSettings });
+			}
+			sendGlow();
+		}
+	}
+	/** One hidden colour picker, opened by the glow buttons. */
+	let glowInput = /** @type {HTMLInputElement | null} */ (null);
+	/** Opens the colour picker for one eye, next to its button. */
+	function pickGlow(/** @type {'Left' | 'Right'} */ side, /** @type {HTMLElement} */ near) {
+		if (!glowInput) {
+			glowInput = document.createElement('input');
+			glowInput.type = 'color';
+			glowInput.id = 'sce-glow-picker';
+			glowInput.style.cssText = 'position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0;';
+			document.body.append(glowInput);
+		}
+		const input = glowInput;
+		const r = near.getBoundingClientRect();
+		input.style.left = `${r.left}px`;
+		input.style.top = `${r.bottom}px`;
+		input.value = glowHex(side);
+		input.oninput = () => setGlow(side, input.value, false);
+		input.onchange = () => setGlow(side, input.value, true);
+		input.click();
+	}
+	/** The little colour buttons in the corners of the glowing-eye faces (in your own expression menu only). */
+	function paintGlowButtons() {
+		const menu = typeof DialogSelfMenuMapping === 'object' && DialogSelfMenuMapping ? DialogSelfMenuMapping.Expression : null;
+		const mine = !!(menu && menu.C && (menu.C === w.Player || (typeof menu.C.IsPlayer === 'function' && menu.C.IsPlayer())));
+		const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll('.dialog-expression-grid[data-name="Fluids"] button[name^="ShadowGlow"]'));
+		for (const button of buttons) {
+			for (const side of GLOWS[button.name] || []) {
+				let dot = /** @type {HTMLElement | null} */ (button.querySelector(`.sce-glow-dot[data-side="${side}"]`));
+				if (!mine) {
+					dot?.remove();
+					continue;
+				}
+				if (!dot) {
+					const own = document.createElement('span');
+					own.className = 'sce-glow-dot';
+					own.dataset.side = side;
+					own.title = `${side} eye's glow colour (right-click: the eye's own colour)`;
+					// (the face's own button must not take these clicks)
+					for (const type of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) {
+						own.addEventListener(type, (e) => e.stopPropagation());
+					}
+					own.addEventListener('click', (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						pickGlow(side, own);
+					});
+					own.addEventListener('contextmenu', (e) => {
+						e.stopPropagation();
+						e.preventDefault();
+						setGlow(side, '', true);
+					});
+					button.append(own);
+					dot = own;
+				}
+				dot.style.background = glowHex(side);
+				dot.classList.toggle('sce-glow-picked', !!glowPicked(w.Player)[side]);
+			}
+		}
+	}
+	/** Adds the colour buttons whenever the game rebuilds the expression menu's faces. */
+	function hookGlowButtons() {
+		const style = document.createElement('style');
+		style.id = 'sce-glow-dots';
+		style.textContent = [
+			'.dialog-expression-grid button:has(> .sce-glow-dot) { position: relative; }',
+			'.sce-glow-dot { position: absolute; top: 4%; width: 28%; aspect-ratio: 1; border-radius: 50%; box-sizing: border-box; border: 2px dashed white; outline: 1px solid black; cursor: pointer; pointer-events: auto; z-index: 1; }',
+			'.sce-glow-dot.sce-glow-picked { border-style: solid; }',
+			'.sce-glow-dot[data-side="Left"] { left: 4%; }',
+			'.sce-glow-dot[data-side="Right"] { right: 4%; }',
+			'.sce-glow-dot:hover { transform: scale(1.15); }',
+		].join('\n');
+		(document.head || document.documentElement).append(style);
+		hookGame('DialogSelfMenuMapping.Expression._ReloadButtonGrid', 0, 'Glow colours', (args, next) => {
+			const res = next(args);
+			try {
+				paintGlowButtons();
+			} catch (e) {
+				problem('Glow colours', e);
+			}
+			return res;
+		});
 	}
 	/** The glow of these eyes (each with its hue), as a picture the size of the Fluids picture. Kept once made. */
 	function glowPicture(/** @type {{ side: 'Left' | 'Right', hue: number, grey: boolean }[]} */ eyes) {
@@ -2421,10 +2579,20 @@
 				Content: ROOM_HELLO,
 				Type: 'Hidden',
 				...(to ? { Target: to } : {}),
-				Dictionary: [{ sce: VERSION, ...(to ? {} : { reply: true }) }],
+				Dictionary: [{ sce: VERSION, glow: glowPicked(w.Player), ...(to ? {} : { reply: true }) }],
 			});
 		} catch {
 			// no room, no hello
+		}
+	}
+	/** Tells the room's SCE users your glow colours changed (the hello, without asking for answers). */
+	function sendGlow() {
+		try {
+			if (typeof w.ServerPlayerIsInChatRoom === 'function' && w.ServerPlayerIsInChatRoom()) {
+				w.ServerSend('ChatRoomChat', { Content: ROOM_HELLO, Type: 'Hidden', Dictionary: [{ sce: VERSION, glow: glowPicked(w.Player) }] });
+			}
+		} catch {
+			// no room
 		}
 	}
 
@@ -2471,6 +2639,14 @@
 					const v = d && typeof d === 'object' ? d.sce : null;
 					if (typeof v === 'string' && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v)) {
 						roomVersions.set(m.Sender, v);
+						const glow = cleanGlow(d.glow);
+						if (JSON.stringify(glow) !== JSON.stringify(roomGlows.get(m.Sender) || null)) {
+							roomGlows.set(m.Sender, glow);
+							const C = Array.isArray(w.Character) ? w.Character.find((/** @type {any} */ c) => c && c.MemberNumber === m.Sender) : null;
+							if (C && typeof w.CharacterRefresh === 'function') {
+								w.CharacterRefresh(C, false, false);
+							}
+						}
 						if (d.reply === true && Date.now() - (helloAnswered.get(m.Sender) || 0) > 10000) {
 							helloAnswered.set(m.Sender, Date.now());
 							sendHello(m.Sender);
