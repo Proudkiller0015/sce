@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.14",
+		"title": "Slime Clothing Extension v1.8.14",
+		"text": "🌑 Face shadow: four new faces in the Fluids row of the expression menu. Shadow puts a dark shade over your eyes, and Glow Left, Glow Right and Glow Both make one or both eyes glow through it, each in that eye's own colour (Echo's eyes too). Players without SCE see your face without it."
+	},
+	{
 		"id": "1.8.13",
 		"title": "Slime Clothing Extension v1.8.13",
 		"text": "📻 A boombox or TV that can't play its link now says so, with the reason, instead of staying silent. Most often it's a song whose uploader only lets it play on YouTube itself (many official music videos): a \"lyrics\" or \"Topic\" upload of the same song usually works, or an mp3 link."

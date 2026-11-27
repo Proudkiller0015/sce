@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.13';
+	const VERSION = '1.8.14';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -246,6 +246,11 @@
 			addExpressions();
 		} catch (e) {
 			problem('Expressions', e);
+		}
+		try {
+			addEyeGlow();
+		} catch (e) {
+			problem('Glowing eyes', e);
 		}
 		hookGame('AssetTextGet', 0, 'Clothes texts', (args, next) =>
 			typeof args[0] === 'string' && texts.has(args[0]) ? texts.get(args[0]) : next(args),
@@ -547,7 +552,14 @@
 	 * character like them). Their pictures are faces/<Group>/<Name>/<Group>.png, their menu buttons faces/<Group>/<Name>/
 	 * icon.png. Players without SCE see nothing there.
 	 */
-	const EXPRESSIONS = [{ group: 'Blush', name: 'Sick' }];
+	const EXPRESSIONS = [
+		{ group: 'Blush', name: 'Sick' },
+		// a shadow over the eyes, alone or with glowing eyes (Fluids is drawn over every eye, the game's and Echo's)
+		{ group: 'Fluids', name: 'Shadow' },
+		{ group: 'Fluids', name: 'ShadowGlowLeft' },
+		{ group: 'Fluids', name: 'ShadowGlowRight' },
+		{ group: 'Fluids', name: 'ShadowGlowBoth' },
+	];
 	/** Adds the expressions to their groups (and those groups' items), once. */
 	function addExpressions() {
 		const getGroup = gameFunction('AssetGroupGet') && w.AssetGroupGet;
@@ -572,6 +584,171 @@
 				}
 			}
 		}
+	}
+
+	// ---- Glowing eyes under the face shadow
+	/**
+	 * The glowing eyes of the face shadow expressions are drawn by SCE over the shadow's picture, in the colour of the eye
+	 * that glows: the game gives the Fluids row no colour of its own, and a glow baked into the picture would be one
+	 * colour for everyone. Which eyes glow, by expression.
+	 */
+	const GLOWS = /** @type {Record<string, ('Left' | 'Right')[]>} */ ({
+		ShadowGlowLeft: ['Left'],
+		ShadowGlowRight: ['Right'],
+		ShadowGlowBoth: ['Left', 'Right'],
+	});
+	// (each eye's centre in the Fluids picture, which the game draws at the face: the game's Eyes and its mirror Eyes2)
+	const GLOW_AT = { Left: [22.38, 14.03], Right: [76.62, 14.03] };
+	const GLOW_SIZE = [110, 52];
+	// (where an eye's colour is read: Echo's eye on that side when worn, else the game's)
+	const GLOW_FROM = { Left: ['左眼_Luzi', 'Eyes'], Right: ['右眼_Luzi', 'Eyes2'] };
+	/** @type {Map<string, HTMLCanvasElement>} */
+	const glowPictures = new Map();
+
+	/** "#rrggbb" (or "#rgb") as [r, g, b] 0-255, or null. */
+	function hexRgb(/** @type {unknown} */ hex) {
+		if (typeof hex !== 'string' || !/^#(?:[0-9a-f]{3}){1,2}$/i.test(hex)) {
+			return null;
+		}
+		const h = hex.length === 4 ? hex.replace(/[0-9a-f]/gi, (c) => c + c) : hex;
+		return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+	}
+	/** [hue 0-360, saturation 0-1, lightness 0-1] of an [r, g, b]. */
+	function rgbHsl(/** @type {number[]} */ [r, g, b]) {
+		const [x, y, z] = [r / 255, g / 255, b / 255];
+		const max = Math.max(x, y, z);
+		const min = Math.min(x, y, z);
+		const l = (max + min) / 2;
+		const d = max - min;
+		if (!d) {
+			return [0, 0, l];
+		}
+		const s = d / (1 - Math.abs(2 * l - 1));
+		const h = max === x ? ((y - z) / d + 6) % 6 : max === y ? (z - x) / d + 2 : (x - y) / d + 4;
+		return [h * 60, s, l];
+	}
+	/** [r, g, b] 0-255 of a hue, saturation and lightness. */
+	function hslRgb(/** @type {number} */ h, /** @type {number} */ s, /** @type {number} */ l) {
+		const c = (1 - Math.abs(2 * l - 1)) * s;
+		const f = (/** @type {number} */ n) => {
+			const k = (n + h / 30) % 12;
+			return Math.round(255 * (l - (c / 2) * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+		};
+		return [f(0), f(8), f(4)];
+	}
+	/**
+	 * The colour an eye of character C glows in, as its hue: that eye's most colourful colour (an eye has several, its
+	 * white too); grey, black or white eyes glow white. Violet when no eye is worn.
+	 */
+	function glowHue(/** @type {any} */ C, /** @type {'Left' | 'Right'} */ side) {
+		for (const group of GLOW_FROM[side]) {
+			const item = Array.isArray(C.Appearance) ? C.Appearance.find((/** @type {any} */ a) => a.Asset && a.Asset.Group.Name === group) : null;
+			if (!item) {
+				continue;
+			}
+			const raw = !item.Color || item.Color === 'Default' ? item.Asset.DefaultColor : item.Color;
+			let best = null;
+			for (const colour of Array.isArray(raw) ? raw : [raw]) {
+				const rgb = hexRgb(colour);
+				const hsl = rgb && rgbHsl(rgb);
+				// (how colourful it looks: saturation counts less in very dark or very light colours)
+				const score = hsl ? hsl[1] * Math.min(1, hsl[2] / 0.15, (1 - hsl[2]) / 0.15) : -1;
+				if (hsl && (!best || score > best.score)) {
+					best = { hue: hsl[0], score };
+				}
+			}
+			if (best) {
+				return best.score < 0.12 ? { hue: 0, grey: true } : { hue: best.hue, grey: false };
+			}
+		}
+		return { hue: 272, grey: false };
+	}
+	/** The glow of these eyes (each with its hue), as a picture the size of the Fluids picture. Kept once made. */
+	function glowPicture(/** @type {{ side: 'Left' | 'Right', hue: number, grey: boolean }[]} */ eyes) {
+		const key = eyes.map((e) => `${e.side}${e.grey ? 'g' : Math.round(e.hue)}`).join(',');
+		const kept = glowPictures.get(key);
+		if (kept) {
+			return kept;
+		}
+		const [W, H] = GLOW_SIZE;
+		const canvas = document.createElement('canvas');
+		canvas.width = W;
+		canvas.height = H;
+		const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+		const image = ctx.createImageData(W, H);
+		const px = image.data;
+		for (const eye of eyes) {
+			const s = eye.grey ? 0 : 1;
+			// (outer bloom, the flame around the eye, its white-hot core)
+			const tints = [hslRgb(eye.hue, s * 0.85, 0.54), hslRgb(eye.hue, s, 0.74), hslRgb(eye.hue, s, 0.96)];
+			const [cx, cy] = GLOW_AT[eye.side];
+			const out = eye.side === 'Left' ? -1 : 1;
+			for (let y = 0; y < H; y++) {
+				for (let x = 0; x < W; x++) {
+					const dx = x - cx;
+					const dy = y - cy;
+					// (a little flame: a bit taller than wide, leaning up and outward)
+					const core = Math.max(0, Math.min(1, 1.6 - Math.hypot(dx, dy / 1.25) / 2));
+					const mid = Math.exp(-(Math.hypot(dx - out * 0.8, (dy + 1.2) / 1.35) ** 2) / (2 * 4.2 ** 2));
+					const bloom = Math.exp(-(dx ** 2 + (dy * 1.1) ** 2) / (2 * 10.5 ** 2));
+					const i = (y * W + x) * 4;
+					for (const [k, layer] of [
+						[0, bloom * 0.55],
+						[1, mid * 0.95],
+						[2, core],
+					]) {
+						const la = Math.max(0, Math.min(1, layer));
+						if (la < 0.002) {
+							continue;
+						}
+						// (painted over what is there, straight alpha)
+						const a = px[i + 3] / 255;
+						const outA = la + a * (1 - la);
+						for (let c = 0; c < 3; c++) {
+							px[i + c] = Math.round((tints[k][c] * la + px[i + c] * a * (1 - la)) / outA);
+						}
+						px[i + 3] = Math.round(outA * 255);
+					}
+				}
+			}
+		}
+		ctx.putImageData(image, 0, 0);
+		if (glowPictures.size > 64) {
+			glowPictures.clear();
+		}
+		glowPictures.set(key, canvas);
+		return canvas;
+	}
+	/**
+	 * Draws the glow after the game draws a character's Fluids (its after-drawing step, which the game calls by the
+	 * name Assets<Group><Item>AfterDraw), on the open-eyed picture only: a blinking eye doesn't glow.
+	 */
+	function addEyeGlow() {
+		const fluids = gameFunction('AssetGet') && w.AssetGet('Female3DCG', 'Fluids', 'Fluids');
+		if (!fluids) {
+			return;
+		}
+		const name = 'AssetsFluidsFluidsAfterDraw';
+		/** @type {Function | null} */
+		const before = typeof w[name] === 'function' ? w[name] : null;
+		let failed = false;
+		w[name] = (/** @type {any} */ data) => {
+			if (before) {
+				before(data);
+			}
+			const sides = data && data.Property ? GLOWS[data.Property.Expression] : null;
+			if (!sides || typeof data.drawCanvas !== 'function' || failed) {
+				return;
+			}
+			try {
+				const eyes = sides.map((side) => ({ side, ...glowHue(data.C, side) }));
+				data.drawCanvas(glowPicture(eyes), data.X, data.Y, data.AlphaMasks);
+			} catch (e) {
+				failed = true;
+				problem('Glowing eyes', e);
+			}
+		};
+		fluids.DynamicAfterDraw = true;
 	}
 
 	/** The add-on's address for one of the game's picture paths, or '' when it isn't one of ours. */
