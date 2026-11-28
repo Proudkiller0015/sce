@@ -13,7 +13,7 @@
 	/** The add-on's id (its OnlineSharedSettings key and mod SDK name) and the name players see. Change both when it is named. */
 	const ADDON_ID = 'SCE';
 	const ADDON_NAME = 'Slime Clothing Extension';
-	const VERSION = '1.8.15';
+	const VERSION = '1.8.16';
 	/** Where clothes/ lives: the loader sets SCEBase; else next to this script. */
 	const BASE = (
 		w.SCEBase ||
@@ -709,19 +709,25 @@
 		return '#' + hslRgb(hue, grey ? 0 : 1, grey ? 0.92 : 0.6).map((v) => v.toString(16).padStart(2, '0')).join('');
 	}
 	/**
-	 * Sets the glow colour of one of your eyes ('' = the eye's own colour again). Saved and told to the room only when
+	 * Sets the glow colour of one of your eyes, or 'Both' ('' = the eye's own colour again; nothing happens if it already was). Saved and told to the room only when
 	 * `save` (the picker's final choice); while the picker is dragged only your own view follows.
 	 */
-	function setGlow(/** @type {'Left' | 'Right'} */ side, /** @type {string} */ hex, /** @type {boolean} */ save) {
+	function setGlow(/** @type {'Left' | 'Right' | 'Both'} */ side, /** @type {string} */ hex, /** @type {boolean} */ save) {
 		const p = w.Player;
 		if (!p || !p.OnlineSharedSettings) {
 			return;
 		}
 		const glow = cleanGlow(p.OnlineSharedSettings[GLOW_KEY]);
-		if (/^#[0-9a-f]{6}$/i.test(hex)) {
-			glow[side] = hex.toLowerCase();
-		} else {
-			delete glow[side];
+		const sides = /** @type {('Left' | 'Right')[]} */ (side === 'Both' ? ['Left', 'Right'] : [side]);
+		if (!sides.some((s) => glow[s]) && !/^#[0-9a-f]{6}$/i.test(hex)) {
+			return;
+		}
+		for (const s of sides) {
+			if (/^#[0-9a-f]{6}$/i.test(hex)) {
+				glow[s] = hex.toLowerCase();
+			} else {
+				delete glow[s];
+			}
 		}
 		if (Object.keys(glow).length) {
 			p.OnlineSharedSettings[GLOW_KEY] = glow;
@@ -820,6 +826,28 @@
 			}
 			return res;
 		});
+		// The menu's Reset button puts the glow colours back to the eyes' own too.
+		const clear = DialogSelfMenuMapping.Expression.menubarEventListeners?.clear;
+		if (!clear || typeof clear.click !== 'function') {
+			problem('Glow colours reset', 'the expression menu has no Reset button');
+			return;
+		}
+		const gameClear = clear.click;
+		clear.click = function (/** @type {any[]} */ ...args) {
+			const res = gameClear.apply(this, args);
+			if (!working('Glow colours')) {
+				return res;
+			}
+			try {
+				const C = args[2] && args[2].C;
+				if (C === w.Player || (C && typeof C.IsPlayer === 'function' && C.IsPlayer())) {
+					setGlow('Both', '', true);
+				}
+			} catch (e) {
+				problem('Glow colours', e);
+			}
+			return res;
+		};
 	}
 	/** The glow of these eyes (each with its hue), as a picture the size of the Fluids picture. Kept once made. */
 	function glowPicture(/** @type {{ side: 'Left' | 'Right', hue: number, grey: boolean }[]} */ eyes) {

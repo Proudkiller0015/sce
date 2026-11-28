@@ -1,5 +1,10 @@
 [
 	{
+		"id": "1.8.16",
+		"title": "Slime Clothing Extension v1.8.16",
+		"text": "🌑 Glowing eyes: the Reset button of the expression menu now also puts both glow colours back to your eyes' own colours."
+	},
+	{
 		"id": "1.8.15",
 		"title": "Slime Clothing Extension v1.8.15",
 		"text": "🌑 Glowing eyes: Glow Left, Glow Right and Glow Both now have a small colour button in their corner, one per eye. Click it to pick that eye's glow colour, right-click it to go back to the eye's own colour. SCE users in the room see your colours. Fixed: with Echo's eyes, the two glow colours were swapped."
